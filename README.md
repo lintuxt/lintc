@@ -1,4 +1,4 @@
-Zero-dependency Python static-site generator. Base layout + partials + Markdown content + YAML data + shortcodes. One file, stdlib only.
+*Zero-dependency Python static-site generator. Base layout + partials + Markdown content + YAML data + shortcodes. One file, stdlib only.*
 
 [![PyPI](https://img.shields.io/pypi/v/lintc.svg?v=3)](https://pypi.org/project/lintc/)
 [![CI](https://github.com/lintuxt/lintc/actions/workflows/test.yml/badge.svg)](https://github.com/lintuxt/lintc/actions/workflows/test.yml)
