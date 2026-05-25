@@ -4,6 +4,18 @@ All notable changes to lintc are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] — 2026-05-25
+
+### Changed
+
+- **Republish of 0.4.1 source under a new version.** Functionally
+  identical to 0.4.1 (no code or behavior changes). The version bump
+  exists so the corresponding 0.4.1 PyPI release can be deleted: the
+  source git history was rewritten (see repo's project notes), making
+  the 0.4.1 archive on PyPI reference commits that no longer exist
+  upstream. 0.4.2 publishes from the current orphan trunk and becomes
+  the canonical artifact going forward.
+
 ## [0.4.1] — 2026-05-25
 
 ### Fixed
@@ -195,6 +207,7 @@ production at [lintuxt.ai](https://lintuxt.ai). Feature set at v0.1.0:
 - **Error overlay:** SSE-driven browser overlay shows YAML/template/build
   errors with file/line/snippet during `lintc serve`.
 
+[0.4.2]: https://github.com/lintuxt/lintc/releases/tag/v0.4.2
 [0.4.1]: https://github.com/lintuxt/lintc/releases/tag/v0.4.1
 [0.4.0]: https://github.com/lintuxt/lintc/releases/tag/v0.4.0
 [0.3.1]: https://github.com/lintuxt/lintc/releases/tag/v0.3.1
