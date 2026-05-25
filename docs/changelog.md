@@ -1,0 +1,207 @@
+# Changelog
+
+All notable changes to lintc are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.4.1] — 2026-05-25
+
+### Fixed
+
+- **Template engine: bracket-key access for dict values.** Templates can now
+  use `{{ page.body_sections["Install"] | raw }}` and
+  `{{ if page.body_sections["Why it exists"] }}...{{ end }}`. v0.4.0 added
+  `page.body_sections` and the spec promised this syntax, but the template
+  engine only supported dot-paths — bracket keys silently broke. Both
+  `_tpl_resolve_path` and the condition tokenizer now understand
+  `["string key"]` and `['string key']` segments (any character except the
+  matching quote allowed inside, including spaces and dots). Pure templates
+  using dot-syntax continue to work unchanged.
+
+## [0.4.0] — 2026-05-25
+
+### Added
+
+- **`page.body_sections` template scope key.** When a page uses
+  `body_source`, lintc additionally parses the rendered Markdown HTML into
+  sections keyed by each `## h2` heading's text and exposes them as a
+  dict (`page.body_sections["Heading Text"]`). Layouts can selectively
+  render individual sections wrapped in their own custom templates, giving
+  the layout structural control while keeping the README (or any synced
+  Markdown) as the canonical content source. Content before the first h2 is
+  discarded. Existing `page.body_html` (full rendered Markdown) is
+  unchanged and continues to work; `body_sections` is purely additive. See
+  docs/index.md → Accessing body sections individually.
+
+## [0.3.1] — 2026-05-25
+
+### Fixed
+
+- **`run_check` now runs plugins BEFORE the temp build.** Previously
+  plugins ran after the build, which meant plugins that write files
+  (e.g., `remote-sync` writing `body_source` targets) couldn't make their
+  output available to the build's `render_page`. First-time setup with
+  `body_source` + `remote-sync` required a manual `curl` bootstrap.
+  Now: plugins run, then build runs, so initial sync just works.
+
+## [0.3.0] — 2026-05-25
+
+### Added
+
+- **`body_source` page field.** Any page (.yaml or .md frontmatter) can
+  declare `body_source: <path>`. lintc reads the file at that path,
+  renders it as Markdown, and exposes `{{ page.body_html | raw }}` to the
+  layout. Lets sites embed free-form Markdown into structured pages
+  without rewriting their schema.
+- **Bundled `remote-sync` plugin.** Declares a mapping of `(remote URL,
+  local path)`. On `lintc check`, fetches each remote, hashes it,
+  compares to a committed lockfile (`src/data/lintc-sync.lock`), and
+  writes the file + updates the lockfile if upstream changed. Surfaces
+  drift via git working-tree state, not lintc exit code. Replaces the
+  pattern of hardcoding upstream-derived content in pages.
+
+### Changed (BREAKING)
+
+- **Removed `portfolio-check` plugin.** The new `remote-sync` model
+  doesn't need GitHub-repo-list parity — each remote-sync mapping is
+  declared explicitly. Existing users with `check.plugins.portfolio-check`
+  in `lintc.yaml` should remove that block and (if they want the
+  underlying drift-prevention) add a `remote-sync` block with their
+  per-repo URL mappings.
+- **`lintc check` may now modify files in the working tree.** When
+  `remote-sync` is configured and a remote has changed, the plugin
+  writes the new content to the local path and updates the lockfile.
+  Users should expect a possibly-dirty working tree after `check` runs.
+
+### Removed
+
+- `lintc_plugins.portfolio_check` module. `from lintc_plugins.portfolio_check
+  import run` will fail with `ModuleNotFoundError`. No replacement function;
+  the drift-detection responsibility moves to `remote-sync`.
+
+## [0.2.1] — 2026-05-25
+
+### Added
+
+- `lintc.version` template variable. Site templates can render the lintc
+  version that built them, e.g., `Built with lintc v{{ lintc.version }}`
+  in a footer. Available in every layout/partial; no config required.
+
+## [0.2.0] — 2026-05-25
+
+### Added
+
+- **`src/data/lintc.yaml`** — optional config file for `lintc check`. Sites
+  customize stray markers, set an email allowlist, and enable plugins. See
+  the Configuration section in `docs/index.md`.
+- **Plugin mechanism** — modules in the `lintc_plugins/` namespace package
+  (PEP 420) are discovered at runtime and run during `lintc check` iff their
+  slug appears under `check.plugins` in `lintc.yaml`. Third-party PyPI
+  plugins contribute to the same namespace and are discovered the same way.
+  See the Plugins section in `docs/index.md`.
+- **Bundled `portfolio-check` plugin** — the existing GitHub-repo parity
+  check, extracted into a plugin and made configurable. Disabled by default;
+  enable via `check.plugins.portfolio-check` with `owner` + optional
+  `ignore` + optional `content_dirs`.
+
+### Changed (BREAKING)
+
+- The hardcoded `@lintuxt.ai` email check is removed. New users get no
+  email check by default. Existing users who relied on the old check should
+  add `email_allowlist: ["@your-domain"]` to `src/data/lintc.yaml`.
+- The hardcoded GitHub-parity check is removed from `lintc.py`. The logic
+  moves to the bundled `portfolio-check` plugin. Existing users who relied
+  on it should enable the plugin in `lintc.yaml` with their `owner`,
+  `ignore`, and `content_dirs` settings.
+- `lintc.Config` now has a required `check` constructor argument. Anyone
+  importing `Config` directly needs to pass it (use
+  `lintc.load_config(root)` which handles this automatically).
+
+### Removed
+
+- Module-level constants in `lintc.py`: `GITHUB_OWNER`, `GITHUB_IGNORE`,
+  `_STRAY_MARKERS`.
+- Module-level functions in `lintc.py`: `_fetch_github_json`,
+  `fetch_public_repos`, `missing_product_pages`. Equivalent logic is now in
+  `lintc_plugins.portfolio_check`; if you imported these directly, switch
+  to `from lintc_plugins.portfolio_check import run` (the public API; the
+  private `_fetch_public_repos` helper is not exported).
+
+## [0.1.3] — 2026-05-25
+
+### Changed
+
+- The `lintc check` GitHub-repo parity check now walks both
+  `src/content/products/` and `src/content/engineering/` when looking
+  for product pages. A public sibling repo satisfies the check if it
+  has a page in either directory.
+- `lintc` removed from the default `GITHUB_IGNORE` set: it now belongs
+  on /engineering/ pages of sites using lintc, not in the exemption
+  list. Site authors with their own ignore conventions can still
+  customize.
+
+## [0.1.2] — 2026-05-25
+
+### Changed
+
+- Refresh PyPI project metadata: the `pyproject.toml` description string no
+  longer mentions "Hugo-conceptual". No code change; this release exists to
+  push the updated description to PyPI (project description is captured at
+  publish time and cannot be updated retroactively for an existing release).
+
+## [0.1.1] — 2026-05-25
+
+### Changed
+
+- `GITHUB_IGNORE` now includes `lintc`. The `lintc check` parity check no
+  longer flags the lintc repo itself as a "public repo missing a product
+  page" when run from a sibling site. Matches the existing convention for
+  `lintuxt` (the site repo) and `swift-cli-kit` (a shared library).
+
+## [0.1.0] — 2026-05-24
+
+### Initial release
+
+Extracted from `lintuxt/lintuxt`, where it was developed and proven in
+production at [lintuxt.ai](https://lintuxt.ai). Feature set at v0.1.0:
+
+- **Build pipeline:** discover → parse → derive → render → emit, in a single
+  pass. Generates static HTML, sitemap, and live-reload-aware dev server
+  output under `dist/`.
+- **Content model:** YAML structured pages (e.g. home, resume, product pages)
+  + Markdown posts with YAML front matter (blog).
+- **Layouts and partials:** layout inheritance with
+  `{{ layout "name.html" }}` and reusable partials via
+  `{{ partial "name.html" }}`. Layout selection follows section/slug/explicit
+  rules.
+- **Template engine:** mustache-style `{{ var }}` interpolation with `| raw`
+  bypass, `{{ for x in list }}…{{ end }}` loops, `{{ if cond }}…{{ else }}…{{ end }}`
+  conditionals with `==`/`and`/`or`/`not`, named filters
+  (`raw`, `lower`, `default`, `date`, `join`), and lintc-style comments
+  `{{# … #}}`.
+- **Markdown subset:** paragraphs, headings, lists, code blocks, blockquotes,
+  horizontal rules, inline emphasis/links/code, fenced code with language
+  hints, raw HTML block passthrough (CommonMark §4.6), and shortcodes
+  (`{{< name attr="value" >}}…{{< /name >}}`).
+- **YAML subset:** block mappings/sequences, flow forms, block scalars
+  (`|`, `>`, `|-`, `>-`), quote-aware comment stripping, and
+  preservation of `#` inside block-scalar content (per YAML 1.2).
+- **Dev server:** `lintc serve` runs an HTTP server with mtime-polling file
+  watcher and Server-Sent Events live-reload. Client-disconnect tracebacks
+  are silenced cleanly.
+- **Validation:** `lintc check` runs post-emit link/asset validation +
+  GitHub-repo product-page parity. Same validations also run as part of
+  `lintc build`.
+- **Error overlay:** SSE-driven browser overlay shows YAML/template/build
+  errors with file/line/snippet during `lintc serve`.
+
+[0.4.1]: https://github.com/lintuxt/lintc/releases/tag/v0.4.1
+[0.4.0]: https://github.com/lintuxt/lintc/releases/tag/v0.4.0
+[0.3.1]: https://github.com/lintuxt/lintc/releases/tag/v0.3.1
+[0.3.0]: https://github.com/lintuxt/lintc/releases/tag/v0.3.0
+[0.2.1]: https://github.com/lintuxt/lintc/releases/tag/v0.2.1
+[0.2.0]: https://github.com/lintuxt/lintc/releases/tag/v0.2.0
+[0.1.3]: https://github.com/lintuxt/lintc/releases/tag/v0.1.3
+[0.1.2]: https://github.com/lintuxt/lintc/releases/tag/v0.1.2
+[0.1.1]: https://github.com/lintuxt/lintc/releases/tag/v0.1.1
+[0.1.0]: https://github.com/lintuxt/lintc/releases/tag/v0.1.0

@@ -1,0 +1,9 @@
+{{ layout "_base.html" }}
+<section>
+<h1>{{ section.title }}</h1>
+<ul>
+{{ for product in section.children }}
+<li><a href="{{ product.url }}">{{ product.title }}</a></li>
+{{ end }}
+</ul>
+</section>

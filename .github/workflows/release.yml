@@ -1,0 +1,40 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/lintc/
+    permissions:
+      id-token: write   # required for PyPI OIDC trusted publishing
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Verify tag matches package version
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          pkg_version=$(uv run python -c "import lintc; print(lintc.__version__)")
+          if [ "$tag" != "$pkg_version" ]; then
+            echo "Tag v$tag does not match lintc.__version__ ($pkg_version)" >&2
+            exit 1
+          fi
+          echo "Tag and package version match: $tag"
+
+      - name: Build sdist + wheel
+        run: uv build
+
+      - name: List dist contents
+        run: ls -la dist/
+
+      - name: Publish to PyPI (trusted publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1

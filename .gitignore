@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Build output
+build/
+dist/
+
+# uv / venv
+.venv/
+# uv autogenerates uv.lock during `uv build` etc.; we don't track it
+# since lintc has zero runtime/dev deps so there's nothing meaningful to lock.
+uv.lock
+
+# lintc build cache (if someone tests lintc against a sample site)
+.lintc-cache.json
+
+# OS
+.DS_Store
+docs/superpowers/

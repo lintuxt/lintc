@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lintc"
+description = "Zero-dependency Python static-site generator. Base layout + partials + Markdown content + YAML data + shortcodes. One file, stdlib only."
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "Alexis Charytonow", email = "me@lintuxt.ai"}]
+requires-python = ">=3.9"
+dependencies = []
+keywords = ["static-site-generator", "ssg", "stdlib", "zero-dependency"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Text Processing :: Markup :: HTML",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/lintuxt/lintc"
+Issues = "https://github.com/lintuxt/lintc/issues"
+Changelog = "https://github.com/lintuxt/lintc/blob/main/docs/changelog.md"
+
+[project.scripts]
+lintc = "lintc:cli"
+
+[tool.setuptools]
+py-modules = ["lintc"]
+packages = ["lintc_plugins"]
+
+[tool.setuptools.package-dir]
+lintc_plugins = "lintc_plugins"
+
+[tool.setuptools.dynamic]
+version = {attr = "lintc.__version__"}

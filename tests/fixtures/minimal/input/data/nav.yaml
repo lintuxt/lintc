@@ -1,0 +1,4 @@
+primary:
+  - { label: Home,     href: /,          match: "^/$" }
+  - { label: Products, href: /products/, match: "^/products(/|$)" }
+  - { label: Blog,     href: /blog/,     match: "^/blog(/|$)" }

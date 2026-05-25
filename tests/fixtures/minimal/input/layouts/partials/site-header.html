@@ -1,0 +1,8 @@
+<header>
+<a href="/">{{ site.title }}</a>
+<nav>
+{{ for item in data.nav.primary }}
+<a href="{{ item.href }}">{{ item.label }}</a>
+{{ end }}
+</nav>
+</header>

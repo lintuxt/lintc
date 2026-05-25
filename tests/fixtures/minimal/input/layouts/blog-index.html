@@ -1,0 +1,10 @@
+{{ layout "_base.html" }}
+<section>
+<h1>{{ section.title }}</h1>
+<p>{{ section.intro }}</p>
+<ul>
+{{ for post in section.children }}
+<li><a href="{{ post.url }}">{{ post.title }}</a> — {{ post.date | date "%B %-d, %Y" }}</li>
+{{ end }}
+</ul>
+</section>
