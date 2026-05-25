@@ -1,8 +1,8 @@
 Zero-dependency Python static-site generator. Base layout + partials + Markdown content + YAML data + shortcodes. One file, stdlib only.
 
-[![PyPI](https://img.shields.io/pypi/v/lintc.svg?v=2)](https://pypi.org/project/lintc/)
+[![PyPI](https://img.shields.io/pypi/v/lintc.svg?v=3)](https://pypi.org/project/lintc/)
 [![CI](https://github.com/lintuxt/lintc/actions/workflows/test.yml/badge.svg)](https://github.com/lintuxt/lintc/actions/workflows/test.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/lintuxt/lintc/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/lintuxt/lintc/blob/trunk/LICENSE)
 
 ## Install
 
@@ -52,7 +52,7 @@ lintc --help
 
 `build` hides drafts by default — use `--include-drafts` to opt them in. `serve` shows drafts by default — use `--no-drafts` to hide them.
 
-`lintc check`'s validators are configurable via `src/data/lintc.yaml` — see [the docs](https://github.com/lintuxt/lintc/blob/main/docs/index.md) for the schema.
+`lintc check`'s validators are configurable via `src/data/lintc.yaml` — see [the docs](https://github.com/lintuxt/lintc/blob/trunk/docs/index.md) for the schema.
 
 ## Why it exists
 
@@ -66,9 +66,9 @@ It also doubles as a portfolio surface: every release of lintc is visible on its
 
 ## Documentation
 
-Full docs: [docs/index.md](https://github.com/lintuxt/lintc/blob/main/docs/index.md).
-Changelog: [docs/changelog.md](https://github.com/lintuxt/lintc/blob/main/docs/changelog.md).
+Full docs: [docs/index.md](https://github.com/lintuxt/lintc/blob/trunk/docs/index.md).
+Changelog: [docs/changelog.md](https://github.com/lintuxt/lintc/blob/trunk/docs/changelog.md).
 
 ## License
 
-MIT — see [LICENSE](https://github.com/lintuxt/lintc/blob/main/LICENSE).
+MIT — see [LICENSE](https://github.com/lintuxt/lintc/blob/trunk/LICENSE).
