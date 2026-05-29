@@ -4,6 +4,33 @@ All notable changes to lintc are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] — 2026-05-29
+
+### Added
+
+- **Build-time plugin mechanism.** Plugins are declared under a new
+  `build.plugins` list in `lintc.yaml` (each entry a dotted Python
+  module path). A plugin module exposes module-level `SHORTCODE`,
+  `PARTIAL`, and `ASSETS` attributes; lintc discovers and registers the
+  shortcode → partial mapping at startup. On `build`, `serve`, and
+  `check`, lintc emits each plugin's asset files to
+  `dist/assets/plugins/<slug>/` and injects the corresponding `<link>`
+  and `<script defer>` tags into every page that uses the shortcode.
+  Assets are emitted only for pages that actually use the plugin's
+  shortcode — pages that don't use it are not affected.
+
+- **Bundled plugin: `lintc-swiper`.** A from-scratch, zero-dependency
+  inline image carousel authored via the `{{< lintc-swiper >}}`
+  shortcode. Supports drag/swipe with momentum, prev/next arrow
+  controls, dot pagination, and keyboard navigation. Ships as part of
+  the lintc package (`lintc_plugins/`) and replaces any Embla-based
+  carousel approach.
+
+### Notes
+
+- All additions are backwards-compatible; sites without `build.plugins`
+  configured are unaffected.
+
 ## [0.5.0] — 2026-05-28
 
 ### Added
