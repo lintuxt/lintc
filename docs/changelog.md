@@ -4,6 +4,42 @@ All notable changes to lintc are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] — 2026-05-28
+
+### Added
+
+- **Global `sections` map in template scope.** Every page render (not
+  just section-indexes) now has `sections` available — a dict keyed by
+  section name, each value `{title, description, intro, children}`.
+  Lets non-index pages iterate over another section's pages, e.g.
+  surfacing latest blog posts on the home page or featured products in
+  a sidebar. The existing `section` variable on section-indexes is
+  unchanged. A section with an `_index.yaml` but no child pages appears
+  with `children: []`.
+
+- **`limit:N` filter for lists.** Returns the first `N` items of a
+  list. Sits alongside `truncate` (which is string-only). Raises a
+  template error for non-integer or negative arguments; tolerates
+  `None` input (returns `[]`).
+
+- **Filters apply to `for`-loop iterables.** `{{ for x in xs | limit
+  2 }}` works — the loop header's iterable is evaluated through the
+  same filter-aware path as `{{ var }}` interpolation. Previously
+  for-loops resolved their iterable as a bare path and ignored any
+  `|` filter. Plain, dotted-path, and `k, v` iteration are unchanged.
+
+- **Scope-aware filter arguments.** An unquoted, identifier-shaped
+  filter argument (e.g. `page.count`) is resolved against the current
+  scope chain when such a path exists, otherwise treated as a literal
+  string. Quoted strings, ints, and floats remain literal. Enables
+  `{{ list | limit page.count }}` and `{{ x | default
+  page.fallback_title }}`. Quote an argument to force a literal.
+
+### Notes
+
+- All additions are backwards-compatible; no existing template syntax
+  changes.
+
 ## [0.4.2] — 2026-05-25
 
 ### Changed

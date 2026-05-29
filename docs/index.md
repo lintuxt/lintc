@@ -396,8 +396,16 @@ Inside layouts:
 - `{{ var | default "X" }}` — literal default
 - `{{ var | date "%Y-%m-%d" }}` — date formatting
 - `{{ var | join ", " }}` — list join
+- `{{ var | limit 3 }}` — first N items of a list (also valid in a
+  `for` iterable: `{{ for x in list | limit 3 }}`)
 - `{{ if cond }}…{{ else }}…{{ end }}` — conditionals; `==`/`!=`/`and`/`or`/`not`
-- `{{ for x in list }}…{{ end }}` — loops
+- `{{ for x in list }}…{{ end }}` — loops; the iterable may carry filters
+
+A filter argument that is quoted, numeric, or a literal is used as-is.
+An **unquoted, identifier-shaped** argument (e.g. `page.count`) is
+resolved against the current scope when such a path exists, otherwise
+treated as a literal string — so `{{ list | limit page.count }}` reads
+the count from scope. Quote the argument to force a literal.
 - `{{ partial "name.html" }}` — include a partial from `src/layouts/partials/`
 - `{{# comment #}}` — emits nothing (use sparingly; lintc's tokenizer is
   line-based, so a comment on its own line can produce a blank line in

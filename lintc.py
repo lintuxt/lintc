@@ -28,7 +28,7 @@ from pathlib import Path
 
 
 # --- constants ---
-__version__ = "0.4.2"
+__version__ = "0.5.0"
 
 # Defaults for src/data/lintc.yaml `check.stray_markers`.
 # Used when the key is missing or null. Set to [] in lintc.yaml to disable.
