@@ -1880,7 +1880,29 @@ def _normalize_build_config(raw):
 
 
 def _setup_build_plugins(cfg):
-    pass
+    """Resolve enabled build plugins; populate cfg.build_plugins + cfg.build_partials.
+
+    Raises BuildError if lintc.yaml enables a build plugin that isn't discovered.
+    Idempotent: safe to call once per load_config.
+    """
+    enabled = cfg.build.get("plugins", {})
+    cfg.build_plugins = {}
+    cfg.build_partials = {}
+    if not enabled:
+        return
+    discovered = discover_build_plugins()
+    for slug, _plugin_config in enabled.items():
+        if slug not in discovered:
+            available = sorted(discovered.keys()) or ["(none discovered)"]
+            raise BuildError(
+                "lintc.yaml: build plugin `%s` not found; available: %s"
+                % (slug, ", ".join(available)),
+                source="src/data/lintc.yaml",
+            )
+        mod = discovered[slug]
+        cfg.build_plugins[slug] = mod
+        partial_key = "components/%s.html" % mod.SHORTCODE
+        cfg.build_partials[partial_key] = Path(mod.PARTIAL)
 
 
 def load_config(root, include_drafts=False):
@@ -1998,6 +2020,10 @@ def _make_partial_lookup(cfg):
         for path in candidates:
             if path.exists():
                 return path.read_text(encoding="utf-8")
+        # Build-plugin-contributed partials (site-local candidates win above).
+        plugin_partial = cfg.build_partials.get(name)
+        if plugin_partial is not None and plugin_partial.exists():
+            return plugin_partial.read_text(encoding="utf-8")
         raise TemplateError(
             "partial `%s` not found (looked in %s)"
             % (name, ", ".join(str(c) for c in candidates))
