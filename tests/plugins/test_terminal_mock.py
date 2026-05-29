@@ -63,3 +63,39 @@ class TestWrapChrome(unittest.TestCase):
         self.assertIn('<span class="t-cursor" aria-hidden="true"></span>', result)
         # body sits between the two prompts
         self.assertLess(result.index(body), result.rindex("$ "))
+
+
+_SAMPLE_YAML = (
+    "title: foo\n"
+    "terminal:\n"
+    '  aria_label: "x"\n'
+    "  body_html: |-\n"
+    "    OLD LINE A\n"
+    "\n"
+    "    OLD LINE B\n"
+    "\n"
+    "features:\n"
+    "  - name: List\n"
+)
+
+
+class TestReplaceBodyHtml(unittest.TestCase):
+    def test_replaces_only_block_content(self):
+        new = tm.replace_body_html(_SAMPLE_YAML, ["NEW 1", "", "NEW 2"])
+        self.assertIn("  body_html: |-\n", new)
+        self.assertIn("    NEW 1\n", new)
+        self.assertIn("    NEW 2\n", new)
+        self.assertNotIn("OLD LINE", new)
+        # blank lines inside the block stay blank (no stray indentation)
+        self.assertIn("    NEW 1\n\n    NEW 2\n", new)
+        # surrounding structure intact, trailing blank before features kept
+        self.assertIn('  aria_label: "x"\n', new)
+        self.assertIn("\nfeatures:\n", new)
+
+    def test_idempotent(self):
+        once = tm.replace_body_html(_SAMPLE_YAML, ["NEW 1", "", "NEW 2"])
+        twice = tm.replace_body_html(once, ["NEW 1", "", "NEW 2"])
+        self.assertEqual(once, twice)
+
+    def test_missing_block_returns_none(self):
+        self.assertIsNone(tm.replace_body_html("title: foo\n", ["x"]))
