@@ -14,6 +14,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   palette (green/yellow/red added). Old class names (`t-cyan`, `t-name`, `t-dim`,
   `t-faint`, `t-pink`) are removed. Chrome template classes updated to match
   (`t-dim` → `t-muted` throughout).
+- **`terminal-mock`: simpler chrome.** The mock no longer includes the `Last login`
+  line or the prompt timestamps — it opens straight at the prompt.
+
+### Added
+
+- **`terminal-mock`: per-mapping `drop_lines`.** A list of substrings; any captured
+  line containing one is omitted from the mock (e.g. `drop_lines: ["Looking for sponsors"]`).
 
 ## [0.9.0] — 2026-05-29
 
