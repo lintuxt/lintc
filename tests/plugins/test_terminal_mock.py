@@ -121,3 +121,62 @@ class TestCapturePty(unittest.TestCase):
         )
         self.assertEqual(rc, 0)
         self.assertIn("1", out)
+
+
+def _make_cfg(root):
+    (root / "src" / "data").mkdir(parents=True, exist_ok=True)
+    return lintc.Config(
+        root=root, site={}, data={},
+        check={"email_allowlist": [], "stray_markers": [], "plugins": {}},
+    )
+
+
+class TestRun(unittest.TestCase):
+    def test_missing_mappings_returns_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            errors, _ = tm.run(_make_cfg(Path(tmp)), {})
+        self.assertEqual(len(errors), 1)
+        self.assertIn("mappings", errors[0])
+
+    def test_empty_mappings_silent_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            errors, warnings = tm.run(_make_cfg(Path(tmp)), {"mappings": []})
+        self.assertEqual(errors, [])
+        self.assertEqual(warnings, [])
+
+    def test_missing_binary_warns_and_leaves_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = _make_cfg(root)
+            target = root / "page.yaml"
+            target.write_text(_SAMPLE_YAML, encoding="utf-8")
+            errors, warnings = tm.run(cfg, {"mappings": [
+                {"command": "definitely-not-a-real-binary-xyz", "local": "page.yaml"},
+            ]})
+            self.assertEqual(errors, [])
+            self.assertEqual(len(warnings), 1)
+            self.assertIn("not found", warnings[0])
+            self.assertEqual(target.read_text(encoding="utf-8"), _SAMPLE_YAML)
+
+    def test_end_to_end_with_stub_command(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = _make_cfg(root)
+            target = root / "page.yaml"
+            target.write_text(_SAMPLE_YAML, encoding="utf-8")
+            stub = root / "fakecli"
+            stub.write_text(
+                "#!/usr/bin/env python3\n"
+                "import sys\n"
+                r"sys.stdout.write('\x1b[96mhi\x1b[0m')" + "\n",
+                encoding="utf-8",
+            )
+            os.chmod(stub, 0o755)
+            errors, warnings = tm.run(cfg, {"mappings": [
+                {"command": str(stub), "local": "page.yaml"},
+            ]})
+            self.assertEqual(errors, [])
+            text = target.read_text(encoding="utf-8")
+            self.assertIn('<span class="t-cyan">hi</span>', text)
+            self.assertIn("Last login:", text)
+            self.assertTrue((root / "src" / "data" / "lintc-terminal.lock").exists())
