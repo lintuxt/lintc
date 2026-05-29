@@ -114,7 +114,19 @@ def _fetch_tags(repo):
 
 
 def _select_latest_tag(names):
-    raise NotImplementedError  # implemented in Task 2
+    """Return the highest semver tag (vX.Y.Z), skipping pre-releases and
+    non-semver names. None if there is no qualifying tag."""
+    best = None
+    best_key = None
+    for name in names:
+        m = _SEMVER_RE.match(name)
+        if not m:
+            continue  # pre-releases (vX.Y.Z-rc1) and non-semver are excluded
+        key = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        if best_key is None or key > best_key:
+            best_key = key
+            best = name
+    return best
 
 
 def _rewrite_field(text, field, value):

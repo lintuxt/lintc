@@ -40,5 +40,26 @@ class TestTagSyncConfig(unittest.TestCase):
         self.assertEqual(warnings, [])
 
 
+class TestSelectLatestTag(unittest.TestCase):
+    def test_picks_highest_semver(self):
+        tags = ["v0.1.5", "v0.1.10", "v0.2.0", "v0.1.9"]
+        self.assertEqual(tag_sync._select_latest_tag(tags), "v0.2.0")
+
+    def test_numeric_ordering_not_lexical(self):
+        self.assertEqual(tag_sync._select_latest_tag(["v0.1.9", "v0.1.10"]), "v0.1.10")
+
+    def test_skips_prereleases(self):
+        tags = ["v1.0.0", "v1.1.0-rc1", "v1.0.5-beta"]
+        self.assertEqual(tag_sync._select_latest_tag(tags), "v1.0.0")
+
+    def test_ignores_non_semver(self):
+        tags = ["latest", "nightly", "v2.3.4", "qmk-0.32"]
+        self.assertEqual(tag_sync._select_latest_tag(tags), "v2.3.4")
+
+    def test_empty_or_no_semver_returns_none(self):
+        self.assertIsNone(tag_sync._select_latest_tag([]))
+        self.assertIsNone(tag_sync._select_latest_tag(["latest", "v1.0.0-rc1"]))
+
+
 if __name__ == "__main__":
     unittest.main()
