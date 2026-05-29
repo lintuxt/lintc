@@ -1773,7 +1773,7 @@ def derive_pages(cfg, pages):
 
 class Config:
     """Resolved paths + site/data namespaces for one build invocation."""
-    def __init__(self, root, site, data, check, include_drafts=False):
+    def __init__(self, root, site, data, check, build=None, include_drafts=False):
         self.root = Path(root)
         self.src = self.root / "src"
         self.content_dir = self.src / "content"
@@ -1786,6 +1786,9 @@ class Config:
         self.site = site
         self.data = data
         self.check = check
+        self.build = build if build is not None else {"plugins": {}}
+        self.build_plugins = {}    # {slug: module}  populated by _setup_build_plugins
+        self.build_partials = {}   # {"components/<shortcode>.html": Path}
         self.include_drafts = include_drafts
 
 
@@ -1849,6 +1852,37 @@ def _normalize_check_config(raw):
     }
 
 
+def _normalize_build_config(raw):
+    """Validate + normalize raw `build` dict from lintc.yaml.
+
+    Returns dict with key: plugins (dict[slug -> config-dict]).
+    Raises BuildError on type mismatch.
+    """
+    if raw is None:
+        raw = {}
+    if not isinstance(raw, dict):
+        raise BuildError(
+            "lintc.yaml: top-level `build` must be a mapping, got %s" % type(raw).__name__,
+            source="src/data/lintc.yaml",
+        )
+    plugins = raw.get("plugins")
+    if plugins is None:
+        plugins = {}
+    elif not isinstance(plugins, dict):
+        raise BuildError(
+            "lintc.yaml: build.plugins must be a mapping, got %s" % type(plugins).__name__,
+            source="src/data/lintc.yaml",
+        )
+    KNOWN_KEYS = {"plugins"}
+    for key in sorted(set(raw.keys()) - KNOWN_KEYS):
+        sys.stderr.write("lintc.yaml: warning: ignoring unknown key `build.%s`\n" % key)
+    return {"plugins": plugins}
+
+
+def _setup_build_plugins(cfg):
+    pass
+
+
 def load_config(root, include_drafts=False):
     """Phase 1 — load src/data/*.yaml; resolve paths; normalize check config."""
     root = Path(root)
@@ -1856,6 +1890,7 @@ def load_config(root, include_drafts=False):
     site = {}
     data = {}
     raw_check = None
+    raw_build = None
     if data_dir.is_dir():
         for path in sorted(data_dir.glob("*.yaml")):
             stem = path.stem
@@ -1863,15 +1898,19 @@ def load_config(root, include_drafts=False):
             if stem == "site":
                 site = value or {}
             elif stem == "lintc":
-                # Pull out the `check` subsection for normalization; do not
-                # expose it on cfg.data (lintc config is tool config, not
-                # template data).
+                # Pull out the `check` and `build` subsections for normalization;
+                # do not expose them on cfg.data (lintc config is tool config,
+                # not template data).
                 if isinstance(value, dict):
                     raw_check = value.get("check")
+                    raw_build = value.get("build")
             else:
                 data[stem] = value or {}
     check = _normalize_check_config(raw_check)
-    return Config(root, site, data, check, include_drafts=include_drafts)
+    build = _normalize_build_config(raw_build)
+    cfg = Config(root, site, data, check, build=build, include_drafts=include_drafts)
+    _setup_build_plugins(cfg)
+    return cfg
 
 
 def discover_pages(cfg):
