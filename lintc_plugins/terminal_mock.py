@@ -171,3 +171,42 @@ def replace_body_html(text, body_lines):
     # Replace [start, last_deep+1); keep trailing blanks (last_deep+1 .. scan).
     new_lines = lines[:start] + rebuilt + lines[last_deep + 1:]
     return "\n".join(new_lines)
+
+
+def capture_under_pty(argv, env_extra, columns):
+    """Run argv under a PTY; return (decoded_stdout, returncode).
+
+    The child's stdout is a real terminal, so TTY-gated ANSI is emitted. A
+    wide window size keeps table rows from wrapping. returncode is -1 if the
+    child could not be spawned.
+    """
+    env = dict(os.environ)
+    env.update(env_extra)
+
+    pid, master_fd = pty.fork()
+    if pid == 0:  # child
+        try:
+            _set_winsize(1, rows=200, cols=columns)
+            os.execvpe(argv[0], argv, env)
+        except Exception:
+            os._exit(127)
+    # parent
+    chunks = []
+    try:
+        while True:
+            try:
+                data = os.read(master_fd, 65536)
+            except OSError:  # EIO on slave close == EOF
+                break
+            if not data:
+                break
+            chunks.append(data)
+    finally:
+        os.close(master_fd)
+    _, status = os.waitpid(pid, 0)
+    rc = os.waitstatus_to_exitcode(status)
+    return b"".join(chunks).decode("utf-8", "replace"), rc
+
+
+def _set_winsize(fd, rows, cols):
+    fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))

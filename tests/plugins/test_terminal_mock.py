@@ -99,3 +99,25 @@ class TestReplaceBodyHtml(unittest.TestCase):
 
     def test_missing_block_returns_none(self):
         self.assertIsNone(tm.replace_body_html("title: foo\n", ["x"]))
+
+
+class TestCapturePty(unittest.TestCase):
+    def test_child_sees_a_tty(self):
+        out, rc = tm.capture_under_pty(
+            [sys.executable, "-c",
+             "import os,sys; sys.stdout.write('TTY' if os.isatty(1) else 'PIPE')"],
+            env_extra={},
+            columns=120,
+        )
+        self.assertEqual(rc, 0)
+        self.assertIn("TTY", out)
+
+    def test_env_extra_is_passed(self):
+        out, rc = tm.capture_under_pty(
+            [sys.executable, "-c",
+             "import os,sys; sys.stdout.write(os.environ.get('LINTUXT_DEBUG','none'))"],
+            env_extra={"LINTUXT_DEBUG": "1"},
+            columns=120,
+        )
+        self.assertEqual(rc, 0)
+        self.assertIn("1", out)
