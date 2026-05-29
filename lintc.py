@@ -2782,12 +2782,14 @@ def discover_plugins():
 
 def discover_build_plugins():
     """Return {slug: module} for every `lintc_plugins` module declaring the
-    build-plugin contract: module-level SHORTCODE (str) + ASSETS (list).
+    build-plugin contract: module-level SHORTCODE (str) + PARTIAL (not None)
+    + ASSETS (list or tuple).
 
-    Slugs map filenames underscores->hyphens, same as discover_plugins.
-    A module may expose both a `run` (check plugin) and SHORTCODE/ASSETS
-    (build plugin); the roles are independent. Empty dict if the namespace
-    package is not importable.
+    All three attributes must be present and valid — PARTIAL is a path used
+    by _setup_build_plugins and must not be None. Slugs map filenames
+    underscores->hyphens, same as discover_plugins. A module may expose both
+    a `run` (check plugin) and SHORTCODE/PARTIAL/ASSETS (build plugin); the
+    roles are independent. Empty dict if the namespace package is not importable.
     """
     found = {}
     try:
@@ -2806,8 +2808,10 @@ def discover_build_plugins():
                 mod = importlib.import_module("lintc_plugins." + stem)
             except ImportError:
                 continue
-            if isinstance(getattr(mod, "SHORTCODE", None), str) and isinstance(
-                getattr(mod, "ASSETS", None), (list, tuple)
+            if (
+                isinstance(getattr(mod, "SHORTCODE", None), str)
+                and getattr(mod, "PARTIAL", None) is not None
+                and isinstance(getattr(mod, "ASSETS", None), (list, tuple))
             ):
                 found[stem.replace("_", "-")] = mod
     return found

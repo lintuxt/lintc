@@ -71,5 +71,24 @@ class TestSetupAndValidation(unittest.TestCase):
         self.assertEqual(cfg.build_partials, {})
 
 
+class TestBuildPluginContract(unittest.TestCase):
+    def setUp(self):
+        import lintc_plugins
+        self.pkg_dir = Path(lintc_plugins.__path__[0])
+        self.mod_path = self.pkg_dir / "partialless.py"
+        # SHORTCODE + ASSETS but NO PARTIAL
+        self.mod_path.write_text(
+            "SHORTCODE = 'partialless'\nASSETS = []\n", encoding="utf-8")
+
+    def tearDown(self):
+        if self.mod_path.exists():
+            self.mod_path.unlink()
+        sys.modules.pop("lintc_plugins.partialless", None)
+
+    def test_module_without_partial_not_discovered(self):
+        found = lintc.discover_build_plugins()
+        self.assertNotIn("partialless", found)
+
+
 if __name__ == "__main__":
     unittest.main()
