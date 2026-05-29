@@ -35,3 +35,16 @@ class TestAnsiToSpans(unittest.TestCase):
         self.assertEqual(html, "boom")
         self.assertEqual(len(warnings), 1)
         self.assertIn("31", warnings[0])
+
+    def test_combined_escape_sequence(self):
+        # Defensive: a single escape carrying both codes (`\x1b[1;96m`) must
+        # resolve the same as two separate escapes. CLIKit emits the separate
+        # form, but the converter should not depend on that.
+        html, _ = tm.ansi_to_spans(f"{ESC}[1;96mtext{ESC}[0m")
+        self.assertEqual(html, '<span class="t-name">text</span>')
+
+    def test_bare_reset_escape(self):
+        # `\x1b[m` (empty params) is an SGR reset and must clear styling.
+        html, warnings = tm.ansi_to_spans(f"{ESC}[96mx{ESC}[mtail")
+        self.assertEqual(html, '<span class="t-cyan">x</span>tail')
+        self.assertEqual(warnings, [])
