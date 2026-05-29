@@ -149,6 +149,7 @@ def replace_body_html(text, body_lines):
     if key_idx is None:
         return None
 
+    # Assumes 2-space YAML indentation (terminal: -> body_html: -> content).
     content_indent = key_indent + 2
     start = key_idx + 1
     # Scan the block: blank lines or lines indented >= content_indent.
