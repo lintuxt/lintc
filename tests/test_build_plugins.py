@@ -161,6 +161,17 @@ class TestEmissionAndInjection(unittest.TestCase):
         html = (root / "dist/blog/a/index.html").read_text()
         self.assertNotIn('/assets/plugins/fixtureswiper/', html)
 
+    def test_check_path_emits_assets_no_broken_links(self):
+        # Guards against regressions in the run_check path: build-plugin asset
+        # emission must happen during `lintc check` so the injected
+        # /assets/plugins/... refs don't appear as broken internal links.
+        root = self._make_site(self._site_files(True))
+        cfg = lintc.load_config(root)
+        errors, warnings = lintc.run_check(cfg)
+        broken = [e for e in errors if "assets/plugins" in e]
+        self.assertEqual(broken, [], broken)
+        self.assertEqual(errors, [], errors)
+
 
 if __name__ == "__main__":
     unittest.main()
