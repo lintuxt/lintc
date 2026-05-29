@@ -273,6 +273,10 @@ def run(cfg, plugin_config):
 
         body_html, conv_warnings = ansi_to_spans(_normalize(raw))
         warnings.extend(conv_warnings)
+        # The CLI emits its own leading/trailing blank lines (printBanner /
+        # printSponsorFooter); trim them so the chrome owns the seam spacing —
+        # exactly one blank line between the command and the captured output.
+        body_html = _trim_blank_edges(body_html)
         wrapped = wrap_chrome(body_html, command=os.path.basename(command))
         body_lines = wrapped.split("\n")
 
@@ -301,6 +305,16 @@ def run(cfg, plugin_config):
 def _normalize(raw):
     """Strip a UTF-8 BOM and convert PTY CRLF line endings to LF."""
     return raw.replace("\r\n", "\n").replace("\r", "\n").lstrip("﻿")
+
+
+def _trim_blank_edges(text):
+    """Drop leading and trailing blank-only lines (internal blanks kept)."""
+    lines = text.split("\n")
+    while lines and lines[0].strip() == "":
+        lines.pop(0)
+    while lines and lines[-1].strip() == "":
+        lines.pop()
+    return "\n".join(lines)
 
 
 def _read_lockfile(path):
