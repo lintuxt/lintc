@@ -1023,6 +1023,19 @@ def _filter_markdown(v, arg):
     return markdown_render(str(v or ""))
 
 
+def _filter_limit(v, arg):
+    """List slicer: returns the first int(arg) items of v."""
+    if v is None:
+        return []
+    try:
+        n = int(arg)
+    except (TypeError, ValueError):
+        raise TemplateError("limit: argument must be an integer, got %r" % arg)
+    if n < 0:
+        raise TemplateError("limit: argument must be >= 0, got %d" % n)
+    return list(v)[:n]
+
+
 _TPL_FILTERS = {
     "upper": _filter_upper,
     "lower": _filter_lower,
@@ -1033,6 +1046,7 @@ _TPL_FILTERS = {
     "truncate": _filter_truncate,
     "slug": _filter_slug,
     "markdown": _filter_markdown,
+    "limit": _filter_limit,
 }
 
 
@@ -1395,7 +1409,7 @@ def _tpl_render_tokens(tokens, scope_chain, partial_lookup=None):
             i += 1
         elif kind == T_FOR:
             names, coll_path = _tpl_parse_for_header(payload)
-            collection = _tpl_resolve_path(scope_chain, coll_path)
+            collection, _ = _tpl_eval_expr(coll_path, scope_chain)
             _, end_idx = _tpl_find_matching_end(tokens, i, T_FOR)
             body_tokens = tokens[i + 1 : end_idx]
             # Iterate.

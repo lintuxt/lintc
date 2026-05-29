@@ -117,6 +117,99 @@ class TestFilters(unittest.TestCase):
         )
 
 
+class TestLimitFilter(unittest.TestCase):
+    def test_limit_takes_first_n(self):
+        self.assertEqual(
+            lintc.template_render(
+                '{{ for x in xs | limit 2 }}{{ x }}{{ end }}',
+                {"xs": ["a", "b", "c", "d"]},
+            ),
+            "ab",
+        )
+
+    def test_limit_zero_yields_empty(self):
+        self.assertEqual(
+            lintc.template_render(
+                '{{ for x in xs | limit 0 }}{{ x }}{{ end }}',
+                {"xs": ["a", "b", "c"]},
+            ),
+            "",
+        )
+
+    def test_limit_greater_than_length_returns_all(self):
+        self.assertEqual(
+            lintc.template_render(
+                '{{ for x in xs | limit 10 }}{{ x }}{{ end }}',
+                {"xs": ["a", "b"]},
+            ),
+            "ab",
+        )
+
+    def test_limit_on_none_yields_empty(self):
+        self.assertEqual(
+            lintc.template_render(
+                '{{ for x in xs | limit 3 }}{{ x }}{{ end }}',
+                {"xs": None},
+            ),
+            "",
+        )
+
+    def test_limit_negative_raises(self):
+        with self.assertRaises(lintc.TemplateError):
+            lintc.template_render(
+                '{{ for x in xs | limit -1 }}{{ x }}{{ end }}',
+                {"xs": ["a", "b"]},
+            )
+
+    def test_limit_non_integer_raises(self):
+        with self.assertRaises(lintc.TemplateError):
+            lintc.template_render(
+                '{{ for x in xs | limit "two" }}{{ x }}{{ end }}',
+                {"xs": ["a", "b"]},
+            )
+
+
+class TestForLoopFilters(unittest.TestCase):
+    def test_for_loop_applies_filter_to_iterable(self):
+        # Regression guard: for-loop iterables route through the filter path.
+        self.assertEqual(
+            lintc.template_render(
+                '{{ for x in xs | limit 2 }}{{ x }}{{ end }}',
+                {"xs": ["a", "b", "c"]},
+            ),
+            "ab",
+        )
+
+    def test_for_loop_without_filter_still_works(self):
+        # Regression guard: plain (unfiltered) for-loop iterables unchanged.
+        self.assertEqual(
+            lintc.template_render(
+                '{{ for x in xs }}{{ x }}{{ end }}',
+                {"xs": ["a", "b", "c"]},
+            ),
+            "abc",
+        )
+
+    def test_for_loop_dotted_path_iterable_still_works(self):
+        self.assertEqual(
+            lintc.template_render(
+                '{{ for x in obj.items }}{{ x }}{{ end }}',
+                {"obj": {"items": ["p", "q"]}},
+            ),
+            "pq",
+        )
+
+    def test_for_loop_key_value_iteration_still_works(self):
+        # If lintc supports {{ for k, v in dict }}, this must still work.
+        # If it does NOT support k,v iteration, DELETE this test and note it.
+        out = lintc.template_render(
+            '{{ for k, v in d }}{{ k }}={{ v }};{{ end }}',
+            {"d": {"a": 1, "b": 2}},
+        )
+        self.assertIn("a=1;", out)
+        self.assertIn("b=2;", out)
+
+
 class TestLoops(unittest.TestCase):
     def test_simple_loop(self):
         tpl = "{{ for x in items }}<li>{{ x }}</li>{{ end }}"
