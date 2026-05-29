@@ -50,6 +50,15 @@ class TestAnsiToSpans(unittest.TestCase):
         self.assertEqual(warnings, [])
 
 
+class TestTrimBlankEdges(unittest.TestCase):
+    def test_strips_edge_blanks_keeps_internal(self):
+        self.assertEqual(
+            tm._trim_blank_edges("\n\n  a\n\n  b\n\n"), "  a\n\n  b")
+
+    def test_all_blank_becomes_empty(self):
+        self.assertEqual(tm._trim_blank_edges("\n  \n\n"), "")
+
+
 class TestWrapChrome(unittest.TestCase):
     def test_wraps_body_with_prompt_and_cursor(self):
         body = '  <span class="t-cyan">x</span>'
