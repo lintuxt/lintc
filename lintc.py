@@ -1884,7 +1884,7 @@ def _setup_build_plugins(cfg):
 
 
 def load_config(root, include_drafts=False):
-    """Phase 1 — load src/data/*.yaml; resolve paths; normalize check config."""
+    """Phase 1 — load src/data/*.yaml; resolve paths; normalize check + build config."""
     root = Path(root)
     data_dir = root / "src" / "data"
     site = {}

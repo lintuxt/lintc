@@ -21,6 +21,20 @@ class TestBuildConfig(unittest.TestCase):
         with self.assertRaises(lintc.BuildError):
             lintc._normalize_build_config({"plugins": ["not-a-mapping"]})
 
+    def test_build_config_round_trip_via_load_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data_dir = root / "src" / "data"
+            data_dir.mkdir(parents=True)
+            (data_dir / "site.yaml").write_text("title: t\n", encoding="utf-8")
+            (data_dir / "lintc.yaml").write_text(
+                "build:\n  plugins:\n    lintc-swiper: {}\n", encoding="utf-8"
+            )
+            cfg = lintc.load_config(root)
+            self.assertEqual(cfg.build["plugins"], {"lintc-swiper": {}})
+            self.assertEqual(cfg.build_plugins, {})   # stub _setup_build_plugins is a no-op
+            self.assertEqual(cfg.build_partials, {})
+
 
 if __name__ == "__main__":
     unittest.main()
