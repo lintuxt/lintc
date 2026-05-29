@@ -2754,6 +2754,39 @@ def discover_plugins():
     return plugins
 
 
+def discover_build_plugins():
+    """Return {slug: module} for every `lintc_plugins` module declaring the
+    build-plugin contract: module-level SHORTCODE (str) + ASSETS (list).
+
+    Slugs map filenames underscores->hyphens, same as discover_plugins.
+    A module may expose both a `run` (check plugin) and SHORTCODE/ASSETS
+    (build plugin); the roles are independent. Empty dict if the namespace
+    package is not importable.
+    """
+    found = {}
+    try:
+        import lintc_plugins
+    except ImportError:
+        return found
+    for plugin_dir in lintc_plugins.__path__:
+        path = Path(plugin_dir)
+        if not path.is_dir():
+            continue
+        for entry in path.iterdir():
+            if entry.suffix != ".py" or entry.name.startswith("_"):
+                continue
+            stem = entry.stem
+            try:
+                mod = importlib.import_module("lintc_plugins." + stem)
+            except ImportError:
+                continue
+            if isinstance(getattr(mod, "SHORTCODE", None), str) and isinstance(
+                getattr(mod, "ASSETS", None), (list, tuple)
+            ):
+                found[stem.replace("_", "-")] = mod
+    return found
+
+
 # --- check ---
 def run_check(cfg):
     """Top-level `lintc check`: run enabled plugins, build to temp, run Layer 1.

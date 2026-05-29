@@ -36,5 +36,20 @@ class TestBuildConfig(unittest.TestCase):
             self.assertEqual(cfg.build_partials, {})
 
 
+class TestBuildPluginDiscovery(unittest.TestCase):
+    def test_returns_dict_of_modules_with_contract(self):
+        found = lintc.discover_build_plugins()
+        self.assertIsInstance(found, dict)
+        for slug, mod in found.items():
+            self.assertIsInstance(slug, str)
+            self.assertTrue(hasattr(mod, "SHORTCODE"))
+            self.assertTrue(hasattr(mod, "ASSETS"))
+
+    def test_check_only_plugin_not_discovered_as_build(self):
+        # remote-sync exposes run() but no SHORTCODE/ASSETS -> not a build plugin.
+        found = lintc.discover_build_plugins()
+        self.assertNotIn("remote-sync", found)
+
+
 if __name__ == "__main__":
     unittest.main()
