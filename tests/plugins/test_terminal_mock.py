@@ -83,7 +83,7 @@ class TestWrapChrome(unittest.TestCase):
     def test_wraps_body_with_prompt_and_cursor(self):
         body = '  <span class="t-cyan">x</span>'
         result = tm.wrap_chrome(body, command="displayswitcher")
-        self.assertIn("Last login:", result)
+        self.assertNotIn("Last login:", result)
         # command appears on the leading prompt's command line
         self.assertIn('<span class="t-muted">$ </span>displayswitcher', result)
         # the captured body is present verbatim
@@ -207,7 +207,7 @@ class TestRun(unittest.TestCase):
             self.assertEqual(errors, [])
             text = target.read_text(encoding="utf-8")
             self.assertIn('<span class="t-accent">hi</span>', text)
-            self.assertIn("Last login:", text)
+            self.assertIn("me</span>", text)  # chrome prompt applied
             self.assertTrue((root / "src" / "data" / "lintc-terminal.lock").exists())
 
     def test_non_list_args_returns_error(self):
