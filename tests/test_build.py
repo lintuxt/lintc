@@ -315,6 +315,117 @@ class TestRender(unittest.TestCase):
         self.assertIn("be careful", html)
 
 
+class TestSectionsScope(unittest.TestCase):
+    def _make_site(self, files):
+        d = tempfile.mkdtemp(prefix="lintc-test-")
+        for rel, content in files.items():
+            p = Path(d) / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content, encoding="utf-8")
+        return Path(d)
+
+    def test_sections_available_on_non_section_index_page(self):
+        root = self._make_site({
+            "src/data/site.yaml": "title: lintuxt\nbase_url: https://lintuxt.ai",
+            "src/layouts/_base.html": "<html>{{ inner | raw }}</html>",
+            "src/layouts/home.html": (
+                '{{ layout "_base.html" }}'
+                '{{ for child in sections.products.children }}'
+                '<p>{{ child.title }}</p>'
+                '{{ end }}'
+            ),
+            "src/content/pages/home.yaml": "title: Home\ndescription: x",
+            "src/content/products/_index.yaml": "title: Products\ndescription: x",
+            "src/content/products/a.yaml": "title: alpha\ndescription: x",
+            "src/content/products/b.yaml": "title: bravo\ndescription: x",
+        })
+        cfg = lintc.load_config(root)
+        pages = lintc.derive_pages(cfg, lintc.discover_pages(cfg))
+        home = next(p for p in pages if p.url == "/")
+        html = lintc.render_page(cfg, home, pages)
+        self.assertIn("<p>alpha</p>", html)
+        self.assertIn("<p>bravo</p>", html)
+
+    def test_sections_coexists_with_section_variable_on_index(self):
+        root = self._make_site({
+            "src/data/site.yaml": "title: lintuxt\nbase_url: https://lintuxt.ai",
+            "src/layouts/_base.html": "<html>{{ inner | raw }}</html>",
+            "src/layouts/products-index.html": (
+                '{{ layout "_base.html" }}'
+                '<section>{{ for c in section.children }}<i>{{ c.title }}</i>{{ end }}</section>'
+                '<aside>{{ for c in sections.blog.children }}<b>{{ c.title }}</b>{{ end }}</aside>'
+            ),
+            "src/content/products/_index.yaml": "title: Products\ndescription: x",
+            "src/content/products/p.yaml": "title: prod-one\ndescription: x",
+            "src/content/blog/_index.yaml": "title: Blog\ndescription: x",
+            "src/content/blog/post.md": "---\ntitle: post-one\ndescription: x\ndate: 2026-01-01\n---\nbody",
+        })
+        cfg = lintc.load_config(root)
+        pages = lintc.derive_pages(cfg, lintc.discover_pages(cfg))
+        idx = next(p for p in pages if p.url == "/products/")
+        html = lintc.render_page(cfg, idx, pages)
+        self.assertIn("<i>prod-one</i>", html)
+        self.assertIn("<b>post-one</b>", html)
+
+    def test_sections_missing_index_yaml_defaults_to_section_name(self):
+        root = self._make_site({
+            "src/data/site.yaml": "title: lintuxt\nbase_url: https://lintuxt.ai",
+            "src/layouts/_base.html": "<html>{{ inner | raw }}</html>",
+            "src/layouts/home.html": (
+                '{{ layout "_base.html" }}'
+                '<h2>{{ sections.products.title }}</h2>'
+                '{{ for c in sections.products.children }}<p>{{ c.title }}</p>{{ end }}'
+            ),
+            "src/content/pages/home.yaml": "title: Home\ndescription: x",
+            "src/content/products/a.yaml": "title: alpha\ndescription: x",
+        })
+        cfg = lintc.load_config(root)
+        pages = lintc.derive_pages(cfg, lintc.discover_pages(cfg))
+        home = next(p for p in pages if p.url == "/")
+        html = lintc.render_page(cfg, home, pages)
+        self.assertIn("<h2>products</h2>", html)
+        self.assertIn("<p>alpha</p>", html)
+
+    def test_sections_empty_section_yields_empty_children(self):
+        root = self._make_site({
+            "src/data/site.yaml": "title: lintuxt\nbase_url: https://lintuxt.ai",
+            "src/layouts/_base.html": "<html>{{ inner | raw }}</html>",
+            "src/layouts/home.html": (
+                '{{ layout "_base.html" }}'
+                '<p>start</p>'
+                '{{ for c in sections.blog.children }}<i>{{ c.title }}</i>{{ end }}'
+                '<p>end</p>'
+            ),
+            "src/content/pages/home.yaml": "title: Home\ndescription: x",
+            "src/content/blog/_index.yaml": "title: Blog\ndescription: x",
+        })
+        cfg = lintc.load_config(root)
+        pages = lintc.derive_pages(cfg, lintc.discover_pages(cfg))
+        home = next(p for p in pages if p.url == "/")
+        html = lintc.render_page(cfg, home, pages)
+        self.assertIn("<p>start</p><p>end</p>", html)
+
+    def test_sections_respects_sort_key_from_index(self):
+        root = self._make_site({
+            "src/data/site.yaml": "title: lintuxt\nbase_url: https://lintuxt.ai",
+            "src/layouts/_base.html": "<html>{{ inner | raw }}</html>",
+            "src/layouts/home.html": (
+                '{{ layout "_base.html" }}'
+                '{{ for c in sections.blog.children }}<p>{{ c.title }}</p>{{ end }}'
+            ),
+            "src/content/pages/home.yaml": "title: Home\ndescription: x",
+            "src/content/blog/_index.yaml": "title: Blog\ndescription: x\nsort: -date",
+            "src/content/blog/old.md": "---\ntitle: old\ndescription: x\ndate: 2024-01-01\n---\nb",
+            "src/content/blog/new.md": "---\ntitle: new\ndescription: x\ndate: 2026-01-01\n---\nb",
+        })
+        cfg = lintc.load_config(root)
+        pages = lintc.derive_pages(cfg, lintc.discover_pages(cfg))
+        home = next(p for p in pages if p.url == "/")
+        html = lintc.render_page(cfg, home, pages)
+        # Newest first per default -date sort.
+        self.assertLess(html.index("<p>new</p>"), html.index("<p>old</p>"))
+
+
 class TestBuildSite(unittest.TestCase):
     def _make_site(self, files):
         d = tempfile.mkdtemp(prefix="lintc-test-")

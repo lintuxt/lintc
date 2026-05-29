@@ -2016,6 +2016,7 @@ def render_page(cfg, page, all_pages):
         "page": _page_to_scope_dict(page),
         "site": cfg.site,
         "data": cfg.data,
+        "sections": _build_sections_map(all_pages),
         "lintc": {"version": __version__},
     }
     if page.kind == "section-index":
@@ -2063,6 +2064,40 @@ def _section_for_index(index_page, all_pages):
         "intro": index_page.meta.get("intro", ""),
         "children": children,
     }
+
+
+def _build_sections_map(all_pages):
+    """All sections keyed by name; each value matches _section_for_index's shape."""
+    by_section = {}
+    for p in all_pages:
+        if p.kind == "section-index":
+            # Ensure sections with an index but no children still appear.
+            by_section.setdefault(p.section, [])
+            continue
+        by_section.setdefault(p.section, []).append(p)
+
+    sections = {}
+    for name, pages in by_section.items():
+        idx = next(
+            (p for p in all_pages
+             if p.kind == "section-index" and p.section == name),
+            None,
+        )
+        sort_key = (idx.meta.get("sort") if idx else None) or "-date"
+        descending = sort_key.startswith("-")
+        field = sort_key.lstrip("-")
+        children = [_page_to_scope_dict(p) for p in pages]
+        children.sort(
+            key=lambda c: c.get(field) or datetime.date.min,
+            reverse=descending,
+        )
+        sections[name] = {
+            "title":       idx.title if idx else name,
+            "description": idx.description if idx else "",
+            "intro":       (idx.meta.get("intro") if idx else "") or "",
+            "children":    children,
+        }
+    return sections
 
 
 class BuildResult:
