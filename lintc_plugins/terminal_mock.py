@@ -95,3 +95,30 @@ def _emit(out, warnings, run, active):
         out.append(escaped)
         return
     out.append('<span class="%s">%s</span>' % (cls, escaped))
+
+
+# Static shell chrome. The prompt/login/cursor lines are session decoration,
+# not CLI output, so they live here (not captured). Timestamps are fixed so
+# regeneration is byte-stable. Markup mirrors the hand-authored mock's classes.
+_PROMPT = (
+    '<span class="t-dim"># </span><span class="t-name">me</span>'
+    '<span class="t-dim"> @ </span><span class="t-name">lintuxt.ai</span>'
+    '<span class="t-dim"> in </span><span class="t-cyan">~</span>'
+    '  <span class="t-faint">[%s]</span>'
+)
+
+
+def wrap_chrome(body_html, command):
+    """Wrap captured CLI HTML in the static terminal-session chrome."""
+    lines = [
+        '<span class="t-dim">Last login: Sat May 23 11:30:55 on ttys009</span>',
+        _PROMPT % "17:25:20",
+        '<span class="t-dim">$ </span>' + command,
+        "",
+        body_html,
+        "",
+        _PROMPT % "17:25:31",
+        '<span class="t-dim">$ </span>'
+        '<span class="t-cursor" aria-hidden="true"></span>',
+    ]
+    return "\n".join(lines)

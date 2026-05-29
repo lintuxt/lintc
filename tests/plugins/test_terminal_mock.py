@@ -48,3 +48,18 @@ class TestAnsiToSpans(unittest.TestCase):
         html, warnings = tm.ansi_to_spans(f"{ESC}[96mx{ESC}[mtail")
         self.assertEqual(html, '<span class="t-cyan">x</span>tail')
         self.assertEqual(warnings, [])
+
+
+class TestWrapChrome(unittest.TestCase):
+    def test_wraps_body_with_prompt_and_cursor(self):
+        body = '  <span class="t-cyan">x</span>'
+        result = tm.wrap_chrome(body, command="displayswitcher")
+        self.assertIn("Last login:", result)
+        # command appears on the leading prompt's command line
+        self.assertIn('<span class="t-dim">$ </span>displayswitcher', result)
+        # the captured body is present verbatim
+        self.assertIn(body, result)
+        # trailing prompt + cursor close the frame
+        self.assertIn('<span class="t-cursor" aria-hidden="true"></span>', result)
+        # body sits between the two prompts
+        self.assertLess(result.index(body), result.rindex("$ "))
