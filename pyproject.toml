@@ -37,5 +37,8 @@ packages = ["lintc_plugins"]
 [tool.setuptools.package-dir]
 lintc_plugins = "lintc_plugins"
 
+[tool.setuptools.package-data]
+lintc_plugins = ["swiper_assets/*.html", "swiper_assets/*.css", "swiper_assets/*.js"]
+
 [tool.setuptools.dynamic]
 version = {attr = "lintc.__version__"}
