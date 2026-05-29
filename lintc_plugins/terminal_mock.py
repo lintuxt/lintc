@@ -248,6 +248,11 @@ def run(cfg, plugin_config):
                 "terminal-mock: mappings[%d] `args` must be a list" % i)
             continue
         columns = mapping.get("columns", 120)
+        drop_lines = mapping.get("drop_lines", []) or []
+        if not isinstance(drop_lines, list):
+            errors.append(
+                "terminal-mock: mappings[%d] `drop_lines` must be a list" % i)
+            continue
 
         if shutil.which(command) is None and not os.path.exists(command):
             warnings.append(
@@ -275,9 +280,9 @@ def run(cfg, plugin_config):
 
         body_html, conv_warnings = ansi_to_spans(_normalize(raw))
         warnings.extend(conv_warnings)
-        # The CLI emits its own leading/trailing blank lines (printBanner /
-        # printSponsorFooter); trim them so the chrome owns the seam spacing —
-        # exactly one blank line between the command and the captured output.
+        # Drop any configured lines (e.g. the sponsor footer — the page has its
+        # own Sponsor button), then trim so the chrome owns the seam spacing.
+        body_html = _drop_lines(body_html, drop_lines)
         body_html = _trim_blank_edges(body_html)
         wrapped = wrap_chrome(body_html, command=os.path.basename(command))
         body_lines = wrapped.split("\n")
@@ -307,6 +312,16 @@ def run(cfg, plugin_config):
 def _normalize(raw):
     """Strip a UTF-8 BOM and convert PTY CRLF line endings to LF."""
     return raw.replace("\r\n", "\n").replace("\r", "\n").lstrip("﻿")
+
+
+def _drop_lines(text, patterns):
+    """Drop every line containing any of `patterns` (plain substring match)."""
+    if not patterns:
+        return text
+    return "\n".join(
+        line for line in text.split("\n")
+        if not any(p in line for p in patterns)
+    )
 
 
 def _trim_blank_edges(text):
