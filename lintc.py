@@ -2244,6 +2244,60 @@ def _copy_static(cfg):
     return copied
 
 
+def _page_used_build_slugs(cfg, page):
+    """Set of build-plugin slugs whose shortcode appears in this page's body."""
+    if not cfg.build_plugins:
+        return set()
+    names = {inv.get("name") for inv in (page.body_invocations or [])}
+    used = set()
+    for slug, mod in cfg.build_plugins.items():
+        if mod.SHORTCODE in names:
+            used.add(slug)
+    return used
+
+
+def _inject_plugin_tags(html, cfg, slugs):
+    """Inject <link>/<script defer> tags for the given build-plugin slugs.
+
+    Tags go just before </body> (appended if absent). Asset order follows
+    each plugin's ASSETS list; .css -> <link>, others -> <script defer>.
+    """
+    if not slugs:
+        return html
+    tags = []
+    for slug in sorted(slugs):
+        mod = cfg.build_plugins[slug]
+        for asset in mod.ASSETS:
+            fname = Path(asset).name
+            url = "/assets/plugins/%s/%s" % (slug, fname)
+            if fname.endswith(".css"):
+                tags.append('<link rel="stylesheet" href="%s">' % url)
+            else:
+                tags.append('<script src="%s" defer></script>' % url)
+    block = "".join(tags)
+    if "</body>" in html:
+        return html.replace("</body>", block + "</body>", 1)
+    return html + block
+
+
+def _emit_build_plugin_assets(cfg, slugs):
+    """Copy ASSETS for used build plugins into dist/assets/plugins/<slug>/.
+
+    Returns list of (rel, dest) tuples (rel is the dist-relative posix path).
+    """
+    copied = []
+    for slug in sorted(slugs):
+        mod = cfg.build_plugins[slug]
+        for asset in mod.ASSETS:
+            src = Path(asset)
+            rel = "assets/plugins/%s/%s" % (slug, src.name)
+            dest = cfg.dist / rel
+            _ensure_parent(dest)
+            shutil.copy2(src, dest)
+            copied.append((rel, dest))
+    return copied
+
+
 def _emit_sitemap(cfg, pages):
     """Generate dist/sitemap.xml from non-draft, non-404 pages."""
     base = cfg.site.get("base_url", "").rstrip("/")
@@ -2396,14 +2450,21 @@ def build_site(root, include_drafts=False):
         pages = discover_pages(cfg)
         pages = derive_pages(cfg, pages)
         kept_outputs = []
+        used_slugs = set()
         for page in pages:
             html = render_page(cfg, page, pages)
+            page_slugs = _page_used_build_slugs(cfg, page)
+            html = _inject_plugin_tags(html, cfg, page_slugs)
+            used_slugs |= page_slugs
             out_path = emit_page(cfg, page, html)
             result.pages_built.append(page)
             kept_outputs.append(out_path)
             source_text = (cfg.content_dir / page.rel_path).read_text(encoding="utf-8")
             _update_cache_entry(cache, page, [out_path], source_text)
         for rel, dest in _copy_static(cfg):
+            result.assets_copied.append(rel)
+            kept_outputs.append(dest)
+        for rel, dest in _emit_build_plugin_assets(cfg, used_slugs):
             result.assets_copied.append(rel)
             kept_outputs.append(dest)
         sitemap_path = _emit_sitemap(cfg, pages)
@@ -2853,10 +2914,15 @@ def run_check(cfg):
         try:
             cfg.dist.mkdir(parents=True, exist_ok=True)
             pages = derive_pages(cfg, discover_pages(cfg))
+            used_slugs = set()
             for page in pages:
                 html = render_page(cfg, page, pages)
+                page_slugs = _page_used_build_slugs(cfg, page)
+                html = _inject_plugin_tags(html, cfg, page_slugs)
+                used_slugs |= page_slugs
                 emit_page(cfg, page, html)
             _copy_static(cfg)
+            _emit_build_plugin_assets(cfg, used_slugs)
             _emit_sitemap(cfg, pages)
             post_errors, post_warnings = _validate_post_emit(cfg, mode="build")
             errors.extend(post_errors)
