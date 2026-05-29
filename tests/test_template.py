@@ -268,6 +268,29 @@ class TestScopeAwareFilterArgs(unittest.TestCase):
             "ab",
         )
 
+    def test_bare_word_arg_colliding_with_scope_key_resolves(self):
+        # Documents the deliberate semantic: a bare-word filter arg that
+        # matches a scope key resolves to that value rather than staying
+        # a literal. Quote the arg to force a literal (see next test).
+        self.assertEqual(
+            lintc.template_render(
+                '{{ xs | join sep }}',
+                {"xs": ["a", "b"], "sep": " - "},
+            ),
+            "a - b",
+        )
+
+    def test_quoting_forces_literal_arg_despite_scope_collision(self):
+        # The escape hatch: quoting the arg keeps it literal even when a
+        # same-named scope key exists.
+        self.assertEqual(
+            lintc.template_render(
+                '{{ xs | join "sep" }}',
+                {"xs": ["a", "b"], "sep": " & "},
+            ),
+            "asepb",
+        )
+
 
 class TestLoops(unittest.TestCase):
     def test_simple_loop(self):
