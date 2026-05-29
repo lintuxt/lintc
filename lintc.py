@@ -970,6 +970,35 @@ def _tpl_parse_literal_arg(arg):
     return arg  # bare identifier; treated as string
 
 
+def _tpl_parse_filter_arg(arg, scope_chain):
+    """Parse a filter argument with scope-path resolution.
+
+    Quoted strings, ints, and floats are returned as literals (same as
+    _tpl_parse_literal_arg). Identifier-shaped unquoted args are first
+    looked up against the scope chain; if no such path exists, fall
+    back to bare-string behavior.
+    """
+    s = arg.strip()
+    if s.startswith('"') and s.endswith('"'):
+        return s[1:-1]
+    if s.startswith("'") and s.endswith("'"):
+        return s[1:-1]
+    try:
+        return int(s)
+    except ValueError:
+        pass
+    try:
+        return float(s)
+    except ValueError:
+        pass
+    if scope_chain is not None and re.match(r"^[A-Za-z_][\w.]*$", s):
+        try:
+            return _tpl_resolve_path(scope_chain, s)
+        except TemplateError:
+            pass
+    return s
+
+
 def _filter_upper(v, arg):
     return str(v).upper() if v is not None else ""
 
@@ -1050,7 +1079,7 @@ _TPL_FILTERS = {
 }
 
 
-def _tpl_apply_filters(value, filter_exprs):
+def _tpl_apply_filters(value, filter_exprs, scope_chain=None):
     """Apply chained filters. Returns (value, raw_flag)."""
     raw = False
     for f in filter_exprs:
@@ -1062,7 +1091,7 @@ def _tpl_apply_filters(value, filter_exprs):
             raise TemplateError(
                 "unknown filter `%s`%s" % (name, _suggest(name, _TPL_FILTERS))
             )
-        parsed_arg = _tpl_parse_literal_arg(arg) if arg else None
+        parsed_arg = _tpl_parse_filter_arg(arg, scope_chain) if arg else None
         value = _TPL_FILTERS[name](value, parsed_arg)
     return value, raw
 
@@ -1073,7 +1102,7 @@ def _tpl_eval_expr(expr, scope_chain):
     head = parts[0]
     filters = parts[1:]
     value = _tpl_resolve_path(scope_chain, head)
-    return _tpl_apply_filters(value, filters)
+    return _tpl_apply_filters(value, filters, scope_chain)
 
 
 def _tpl_truthy(v):

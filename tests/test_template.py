@@ -210,6 +210,65 @@ class TestForLoopFilters(unittest.TestCase):
         self.assertIn("b=2;", out)
 
 
+class TestScopeAwareFilterArgs(unittest.TestCase):
+    def test_limit_arg_resolves_from_scope(self):
+        self.assertEqual(
+            lintc.template_render(
+                '{{ for x in xs | limit page.count }}{{ x }}{{ end }}',
+                {"xs": ["a", "b", "c", "d"], "page": {"count": 2}},
+            ),
+            "ab",
+        )
+
+    def test_quoted_string_arg_still_literal(self):
+        # Regression guard: scope-aware parsing must not break the date filter.
+        self.assertEqual(
+            lintc.template_render(
+                '{{ d | date "%Y-%m-%d" }}',
+                {"d": datetime.date(2026, 5, 28)},
+            ),
+            "2026-05-28",
+        )
+
+    def test_bare_identifier_without_scope_match_falls_back_to_string(self):
+        # 'fallback' is not in scope; default should treat it as a string.
+        self.assertEqual(
+            lintc.template_render(
+                '{{ x | default fallback }}',
+                {"x": None},
+            ),
+            "fallback",
+        )
+
+    def test_default_arg_resolves_from_scope_when_path_exists(self):
+        self.assertEqual(
+            lintc.template_render(
+                '{{ x | default page.fallback_title }}',
+                {"x": None, "page": {"fallback_title": "Untitled"}},
+            ),
+            "Untitled",
+        )
+
+    def test_numeric_arg_still_integer(self):
+        self.assertEqual(
+            lintc.template_render(
+                '{{ s | truncate 3 }}',
+                {"s": "abcdef"},
+            ),
+            "abc…",
+        )
+
+    def test_chained_filters_on_for_iterable_with_scope_arg(self):
+        # Locks in multi-filter + scope-arg behavior on a for-loop iterable.
+        self.assertEqual(
+            lintc.template_render(
+                '{{ for x in xs | limit page.many | limit 2 }}{{ x }}{{ end }}',
+                {"xs": ["a", "b", "c", "d", "e"], "page": {"many": 4}},
+            ),
+            "ab",
+        )
+
+
 class TestLoops(unittest.TestCase):
     def test_simple_loop(self):
         tpl = "{{ for x in items }}<li>{{ x }}</li>{{ end }}"
