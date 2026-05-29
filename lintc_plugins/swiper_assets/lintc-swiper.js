@@ -113,7 +113,7 @@
       if (e.button != null && e.button !== 0) return;
       dragging = true; decided = false; horizontal = false;
       startX = e.clientX; startY = e.clientY;
-      baseX = offsetFor(index);
+      baseX = offsetFor(index); // NB: a viewport resize mid-drag leaves baseX stale; goTo on release re-snaps.
       lastX = e.clientX; lastT = e.timeStamp; velocity = 0;
       setTransform(baseX, false);
       if (track.setPointerCapture) {
@@ -149,9 +149,12 @@
       if (!horizontal) return;
       var dx = e.clientX - startX;
       var threshold = slideWidth() * 0.2;
+      // Only trust velocity if the gesture was still moving at release; a fast
+      // drag that paused before lift-off must not trigger a spurious flick.
+      var recentFlick = (e.timeStamp - lastT) <= 80;
       var target = index;
-      if (dx <= -threshold || velocity < -0.5) target = index + 1;
-      else if (dx >= threshold || velocity > 0.5) target = index - 1;
+      if (dx <= -threshold || (recentFlick && velocity < -0.5)) target = index + 1;
+      else if (dx >= threshold || (recentFlick && velocity > 0.5)) target = index - 1;
       goTo(target, true);
     }
 
