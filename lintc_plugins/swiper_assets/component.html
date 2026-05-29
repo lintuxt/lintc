@@ -1,1 +1,1 @@
-<div class="lintc-swiper">{{ inner | raw }}</div>
+<div class="lintc-swiper"{{ if loop }} data-loop="true"{{ end }}>{{ inner | raw }}</div>

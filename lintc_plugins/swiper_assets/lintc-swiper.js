@@ -3,6 +3,11 @@
  * default carousel behavior: slide snapping, pointer drag with momentum,
  * prev/next buttons, dot pagination, keyboard arrows. No external engine,
  * no global namespace; the instance lives on root._lintcSwiper = { api }.
+ *
+ * Loop mode: opt in with `data-loop="true"` on the root (rendered by the
+ * shortcode attribute {{< lintc-swiper loop="true" >}}). Index wraps past
+ * either end and the prev/next buttons never disable, so advancing past
+ * the last slide returns to the first. Default is non-looping.
  */
 (function () {
   "use strict";
@@ -54,6 +59,7 @@
 
     var count = slides.length;
     var index = 0;
+    var loop = root.dataset.loop === "true";   // opt-in via {{< lintc-swiper loop="true" >}}
 
     // ---- dots ----
     var dotBtns = [];
@@ -70,7 +76,10 @@
 
     function slideWidth() { return viewport.getBoundingClientRect().width; }
     function offsetFor(i) { return -i * slideWidth(); }
-    function clamp(i) { return Math.max(0, Math.min(count - 1, i)); }
+    function clamp(i) {
+      if (loop) return (i % count + count) % count;   // wrap past either end
+      return Math.max(0, Math.min(count - 1, i));
+    }
 
     function setTransform(x, animate) {
       track.style.transition = animate
@@ -81,8 +90,8 @@
 
     function render(animate) {
       setTransform(offsetFor(index), animate);
-      prev.disabled = index === 0;
-      next.disabled = index === count - 1;
+      prev.disabled = !loop && index === 0;
+      next.disabled = !loop && index === count - 1;
       for (var i = 0; i < count; i++) {
         dotBtns[i].classList.toggle("is-active", i === index);
         if (i === index) dotBtns[i].setAttribute("aria-current", "true");

@@ -44,6 +44,32 @@ class TestLintcSwiperPlugin(unittest.TestCase):
         self.assertIn("/assets/plugins/lintc-swiper/lintc-swiper.js", html)
         self.assertTrue((root / "dist/assets/plugins/lintc-swiper/lintc-swiper.js").exists())
         self.assertTrue((root / "dist/assets/plugins/lintc-swiper/lintc-swiper.css").exists())
+        # attr-less usage must NOT carry the loop opt-in
+        self.assertNotIn("data-loop", html)
+
+    def test_loop_attribute_renders_data_attr(self):
+        d = tempfile.mkdtemp(prefix="lintc-swiper-loop-test-")
+        root = Path(d)
+        files = {
+            "src/data/site.yaml": "title: t\nbase_url: https://e.test",
+            "src/data/lintc.yaml": "build:\n  plugins:\n    lintc-swiper: {}\n",
+            "src/layouts/_base.html": "<html><body>{{ inner | raw }}</body></html>",
+            "src/layouts/blog-post.html": '{{ layout "_base.html" }}{{ page.body_html | raw }}',
+            "src/content/blog/a.md": (
+                "---\ntitle: A\ndescription: d\n---\n"
+                '{{< lintc-swiper loop="true" >}}\n'
+                '<figure><img src="https://example.com/x.jpg" alt="x"></figure>\n'
+                "{{< /lintc-swiper >}}"
+            ),
+        }
+        for rel, content in files.items():
+            p = root / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content, encoding="utf-8")
+        result = lintc.build_site(root)
+        self.assertEqual(result.errors, [], result.errors)
+        html = (root / "dist/blog/a/index.html").read_text()
+        self.assertIn('<div class="lintc-swiper" data-loop="true">', html)
 
 
 if __name__ == "__main__":

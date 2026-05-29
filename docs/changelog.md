@@ -4,6 +4,18 @@ All notable changes to lintc are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] — 2026-05-29
+
+### Added
+
+- **`lintc-swiper` loop mode.** The carousel shortcode now accepts a
+  `loop` attribute — `{{< lintc-swiper loop="true" >}}` — which renders
+  `data-loop="true"` on the root. In loop mode the slide index wraps past
+  either end and the prev/next buttons never disable, so advancing past
+  the last slide returns to the first (and vice-versa). Default behavior
+  is unchanged: omit the attribute and the carousel stays bounded with
+  disabled buttons at the ends.
+
 ## [0.6.0] — 2026-05-29
 
 ### Added

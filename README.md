@@ -54,7 +54,7 @@ lintc --help
 
 `lintc check`'s validators are configurable via `src/data/lintc.yaml` — see [the docs](https://github.com/lintuxt/lintc/blob/trunk/docs/index.md) for the schema.
 
-lintc also supports **build-time plugins**, declared under `build.plugins` in the same `lintc.yaml`. A plugin contributes a shortcode plus its own JS/CSS, which are emitted into `dist/` (and the matching `<link>`/`<script>` tags injected) only on pages that actually use the shortcode. lintc bundles one: `lintc-swiper`, a zero-dependency inline image carousel authored with the `{{< lintc-swiper >}}` shortcode.
+lintc also supports **build-time plugins**, declared under `build.plugins` in the same `lintc.yaml`. A plugin contributes a shortcode plus its own JS/CSS, which are emitted into `dist/` (and the matching `<link>`/`<script>` tags injected) only on pages that actually use the shortcode. lintc bundles one: `lintc-swiper`, a zero-dependency inline image carousel authored with the `{{< lintc-swiper >}}` shortcode (add `loop="true"` to wrap from the last slide back to the first).
 
 ## Why it exists
 
