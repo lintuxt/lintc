@@ -39,15 +39,20 @@ LOCKFILE_REL_PATH = "src/data/lintc-terminal.lock"
 #   1 bold, 2 dim, 36 cyan, 90 gray, 96 brightCyan, 97 brightWhite, 35 magenta.
 # Tone.title = bold+brightCyan; heading = bold; accent = brightCyan;
 # value = brightWhite; muted = gray; subtle = dim; link = cyan; love = magenta.
+# SGR-code-set -> semantic CSS class. Canonical standard: swift-cli-kit/CONVENTIONS.md.
+# Covers the full CLIKit Style palette, so a compliant CLI never produces an unmapped color.
 _CLASS_BY_CODES = {
-    frozenset({90}): "t-dim",
-    frozenset({2}): "t-faint",
-    frozenset({96}): "t-cyan",
-    frozenset({1, 96}): "t-name",
-    frozenset({1}): "t-name",
-    frozenset({97}): "t-name",
-    frozenset({36}): "t-link",
-    frozenset({35}): "t-pink",
+    frozenset({1, 96}): "t-strong",   # Tone.title
+    frozenset({1}): "t-strong",       # Tone.heading
+    frozenset({97}): "t-strong",      # Tone.value
+    frozenset({96}): "t-accent",      # Tone.accent
+    frozenset({36}): "t-link",        # Tone.link
+    frozenset({90}): "t-muted",       # Tone.muted
+    frozenset({2}): "t-subtle",       # Tone.subtle
+    frozenset({32}): "t-ok",          # Tone.ok
+    frozenset({33}): "t-warn",        # Tone.warn
+    frozenset({31}): "t-error",       # Tone.error
+    frozenset({35}): "t-love",        # Tone.love
 }
 
 _SGR_RE = re.compile(r"\x1b\[([0-9;]*)m")
@@ -101,24 +106,24 @@ def _emit(out, warnings, run, active):
 # not CLI output, so they live here (not captured). Timestamps are fixed so
 # regeneration is byte-stable. Markup mirrors the hand-authored mock's classes.
 _PROMPT = (
-    '<span class="t-dim"># </span><span class="t-name">me</span>'
-    '<span class="t-dim"> @ </span><span class="t-name">lintuxt.ai</span>'
-    '<span class="t-dim"> in </span><span class="t-cyan">~</span>'
-    '  <span class="t-faint">[%s]</span>'
+    '<span class="t-muted"># </span><span class="t-strong">me</span>'
+    '<span class="t-muted"> @ </span><span class="t-strong">lintuxt.ai</span>'
+    '<span class="t-muted"> in </span><span class="t-accent">~</span>'
+    '  <span class="t-subtle">[%s]</span>'
 )
 
 
 def wrap_chrome(body_html, command):
     """Wrap captured CLI HTML in the static terminal-session chrome."""
     lines = [
-        '<span class="t-dim">Last login: Sat May 23 11:30:55 on ttys009</span>',
+        '<span class="t-muted">Last login: Sat May 23 11:30:55 on ttys009</span>',
         _PROMPT % "17:25:20",
-        '<span class="t-dim">$ </span>' + command,
+        '<span class="t-muted">$ </span>' + command,
         "",
         body_html,
         "",
         _PROMPT % "17:25:31",
-        '<span class="t-dim">$ </span>'
+        '<span class="t-muted">$ </span>'
         '<span class="t-cursor" aria-hidden="true"></span>',
     ]
     return "\n".join(lines)

@@ -4,6 +4,17 @@ All notable changes to lintc are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] — 2026-05-29
+
+### Changed
+
+- **`terminal-mock`: standardized semantic `t-*` classes (brand-aligned palette).** The
+  converter now emits 9 semantic classes (`t-strong`, `t-accent`, `t-link`, `t-muted`,
+  `t-subtle`, `t-ok`, `t-warn`, `t-error`, `t-love`) covering the full CLIKit Style
+  palette (green/yellow/red added). Old class names (`t-cyan`, `t-name`, `t-dim`,
+  `t-faint`, `t-pink`) are removed. Chrome template classes updated to match
+  (`t-dim` → `t-muted` throughout).
+
 ## [0.9.0] — 2026-05-29
 
 ### Added

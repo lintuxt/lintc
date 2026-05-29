@@ -20,34 +20,54 @@ class TestAnsiToSpans(unittest.TestCase):
 
     def test_single_code_wraps_in_class(self):
         html, _ = tm.ansi_to_spans(f"{ESC}[96m1{ESC}[0m")
-        self.assertEqual(html, '<span class="t-cyan">1</span>')
+        self.assertEqual(html, '<span class="t-accent">1</span>')
 
-    def test_bold_plus_brightcyan_is_name(self):
+    def test_bold_plus_brightcyan_is_strong(self):
         html, _ = tm.ansi_to_spans(f"{ESC}[1m{ESC}[96mdisplayswitcher{ESC}[0m")
-        self.assertEqual(html, '<span class="t-name">displayswitcher</span>')
+        self.assertEqual(html, '<span class="t-strong">displayswitcher</span>')
 
     def test_reset_returns_to_plain(self):
         html, _ = tm.ansi_to_spans(f"{ESC}[2m·{ESC}[0m x")
-        self.assertEqual(html, '<span class="t-faint">·</span> x')
+        self.assertEqual(html, '<span class="t-subtle">·</span> x')
 
     def test_unknown_code_warns_and_passes_through(self):
-        html, warnings = tm.ansi_to_spans(f"{ESC}[31mboom{ESC}[0m")
+        html, warnings = tm.ansi_to_spans(f"{ESC}[34mboom{ESC}[0m")
         self.assertEqual(html, "boom")
         self.assertEqual(len(warnings), 1)
-        self.assertIn("31", warnings[0])
+        self.assertIn("34", warnings[0])
 
     def test_combined_escape_sequence(self):
         # Defensive: a single escape carrying both codes (`\x1b[1;96m`) must
         # resolve the same as two separate escapes. CLIKit emits the separate
         # form, but the converter should not depend on that.
         html, _ = tm.ansi_to_spans(f"{ESC}[1;96mtext{ESC}[0m")
-        self.assertEqual(html, '<span class="t-name">text</span>')
+        self.assertEqual(html, '<span class="t-strong">text</span>')
 
     def test_bare_reset_escape(self):
         # `\x1b[m` (empty params) is an SGR reset and must clear styling.
         html, warnings = tm.ansi_to_spans(f"{ESC}[96mx{ESC}[mtail")
-        self.assertEqual(html, '<span class="t-cyan">x</span>tail')
+        self.assertEqual(html, '<span class="t-accent">x</span>tail')
         self.assertEqual(warnings, [])
+
+
+class TestSemanticColors(unittest.TestCase):
+    def test_green_is_ok(self):
+        html, w = tm.ansi_to_spans(f"{ESC}[32m✓{ESC}[0m")
+        self.assertEqual(html, '<span class="t-ok">✓</span>'); self.assertEqual(w, [])
+
+    def test_yellow_is_warn(self):
+        html, w = tm.ansi_to_spans(f"{ESC}[33m(asleep){ESC}[0m")
+        self.assertEqual(html, '<span class="t-warn">(asleep)</span>'); self.assertEqual(w, [])
+
+    def test_red_is_error(self):
+        html, w = tm.ansi_to_spans(f"{ESC}[31mlow{ESC}[0m")
+        self.assertEqual(html, '<span class="t-error">low</span>'); self.assertEqual(w, [])
+
+    def test_other_semantics(self):
+        self.assertEqual(tm.ansi_to_spans(f"{ESC}[90mv1{ESC}[0m")[0], '<span class="t-muted">v1</span>')
+        self.assertEqual(tm.ansi_to_spans(f"{ESC}[97mX{ESC}[0m")[0], '<span class="t-strong">X</span>')
+        self.assertEqual(tm.ansi_to_spans(f"{ESC}[36mU{ESC}[0m")[0], '<span class="t-link">U</span>')
+        self.assertEqual(tm.ansi_to_spans(f"{ESC}[35m♥{ESC}[0m")[0], '<span class="t-love">♥</span>')
 
 
 class TestTrimBlankEdges(unittest.TestCase):
@@ -65,7 +85,7 @@ class TestWrapChrome(unittest.TestCase):
         result = tm.wrap_chrome(body, command="displayswitcher")
         self.assertIn("Last login:", result)
         # command appears on the leading prompt's command line
-        self.assertIn('<span class="t-dim">$ </span>displayswitcher', result)
+        self.assertIn('<span class="t-muted">$ </span>displayswitcher', result)
         # the captured body is present verbatim
         self.assertIn(body, result)
         # trailing prompt + cursor close the frame
@@ -186,7 +206,7 @@ class TestRun(unittest.TestCase):
             ]})
             self.assertEqual(errors, [])
             text = target.read_text(encoding="utf-8")
-            self.assertIn('<span class="t-cyan">hi</span>', text)
+            self.assertIn('<span class="t-accent">hi</span>', text)
             self.assertIn("Last login:", text)
             self.assertTrue((root / "src" / "data" / "lintc-terminal.lock").exists())
 
