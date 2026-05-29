@@ -86,5 +86,104 @@ class TestRewriteField(unittest.TestCase):
         self.assertEqual(out, "version: v1.0.0\n")
 
 
+class TestFetchTagsParsing(unittest.TestCase):
+    def test_parses_ls_remote_output_skipping_deref(self):
+        sample = (
+            "deadbeef\trefs/tags/v0.1.0\n"
+            "cafef00d\trefs/tags/v0.2.0\n"
+            "cafef00d\trefs/tags/v0.2.0^{}\n"
+        )
+        with patch.object(tag_sync.subprocess, "run") as m:
+            m.return_value = type("R", (), {"returncode": 0, "stdout": sample})()
+            tags = tag_sync._fetch_tags("lintuxt/foo")
+        self.assertEqual(sorted(tags), ["v0.1.0", "v0.2.0"])
+
+    def test_fetch_returns_none_on_nonzero(self):
+        with patch.object(tag_sync.subprocess, "run") as m:
+            m.return_value = type("R", (), {"returncode": 128, "stdout": ""})()
+            self.assertIsNone(tag_sync._fetch_tags("lintuxt/foo"))
+
+    def test_fetch_returns_none_on_oserror(self):
+        with patch.object(tag_sync.subprocess, "run", side_effect=OSError):
+            self.assertIsNone(tag_sync._fetch_tags("lintuxt/foo"))
+
+
+class TestRunBehavior(unittest.TestCase):
+    def _yaml(self, root, rel, body):
+        p = root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(body, encoding="utf-8")
+        return p
+
+    def test_sets_version_and_writes_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = _make_cfg(root)
+            f = self._yaml(root, "src/content/products/foo.yaml",
+                           "title: Foo\nslug: foo\nversion: v0.1.0\n")
+            with patch.object(tag_sync, "_latest_tag", return_value="v0.2.0"):
+                errors, warnings = tag_sync.run(cfg, {
+                    "mappings": [{"repo": "lintuxt/foo",
+                                  "local": "src/content/products/foo.yaml"}],
+                })
+            self.assertEqual(errors, [])
+            self.assertIn("version: v0.2.0\n", f.read_text())
+            lock = root / "src/data/lintc-tag.lock"
+            self.assertTrue(lock.exists())
+            self.assertIn("v0.2.0", lock.read_text())
+            self.assertTrue(any("set version to v0.2.0" in w for w in warnings))
+
+    def test_no_change_when_already_current(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = _make_cfg(root)
+            f = self._yaml(root, "src/content/products/foo.yaml", "version: v0.2.0\n")
+            before = f.read_text()
+            with patch.object(tag_sync, "_latest_tag", return_value="v0.2.0"):
+                errors, warnings = tag_sync.run(cfg, {
+                    "mappings": [{"repo": "lintuxt/foo",
+                                  "local": "src/content/products/foo.yaml"}],
+                })
+            self.assertEqual(f.read_text(), before)
+            self.assertFalse(any("set version" in w for w in warnings))
+
+    def test_fetch_failure_leaves_field_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = _make_cfg(root)
+            f = self._yaml(root, "src/content/products/foo.yaml", "version: v0.1.0\n")
+            with patch.object(tag_sync, "_latest_tag", return_value=None):
+                errors, warnings = tag_sync.run(cfg, {
+                    "mappings": [{"repo": "lintuxt/foo",
+                                  "local": "src/content/products/foo.yaml"}],
+                })
+            self.assertIn("version: v0.1.0\n", f.read_text())
+            self.assertTrue(any("no tag fetched" in w for w in warnings))
+
+    def test_missing_version_line_warns(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = _make_cfg(root)
+            self._yaml(root, "src/content/products/foo.yaml", "title: Foo\nslug: foo\n")
+            with patch.object(tag_sync, "_latest_tag", return_value="v0.2.0"):
+                errors, warnings = tag_sync.run(cfg, {
+                    "mappings": [{"repo": "lintuxt/foo",
+                                  "local": "src/content/products/foo.yaml"}],
+                })
+            self.assertEqual(errors, [])
+            self.assertTrue(any("no top-level `version:` line" in w for w in warnings))
+
+    def test_missing_file_warns(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = _make_cfg(root)
+            with patch.object(tag_sync, "_latest_tag", return_value="v0.2.0"):
+                errors, warnings = tag_sync.run(cfg, {
+                    "mappings": [{"repo": "lintuxt/foo",
+                                  "local": "src/content/products/missing.yaml"}],
+                })
+            self.assertTrue(any("does not exist" in w for w in warnings))
+
+
 if __name__ == "__main__":
     unittest.main()

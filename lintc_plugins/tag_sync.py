@@ -110,7 +110,28 @@ def _latest_tag(repo):
 
 
 def _fetch_tags(repo):
-    raise NotImplementedError  # implemented in Task 4
+    """Return a list of tag names for `owner/name` via `git ls-remote --tags`,
+    or None on any failure (missing git, network error, non-zero exit)."""
+    url = "https://github.com/" + repo
+    try:
+        result = subprocess.run(
+            ["git", "ls-remote", "--tags", url],
+            capture_output=True, text=True, timeout=15,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        return None
+    names = []
+    for line in result.stdout.splitlines():
+        parts = line.split("\trefs/tags/")
+        if len(parts) != 2:
+            continue
+        ref = parts[1].strip()
+        if ref.endswith("^{}"):
+            continue
+        names.append(ref)
+    return names
 
 
 def _select_latest_tag(names):
