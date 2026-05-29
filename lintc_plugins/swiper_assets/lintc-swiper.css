@@ -1,0 +1,76 @@
+/* lintc-swiper — inline carousel styles. No-JS fallback = vertical figure
+ * stack; .lintc-swiper--mounted switches to the horizontal viewport. */
+
+.lintc-swiper { margin: 1.5rem 0; }
+
+/* Fallback: before JS mounts (or JS disabled), figures stack and stay readable. */
+.lintc-swiper:not(.lintc-swiper--mounted) figure { margin: 0 0 1rem; }
+.lintc-swiper:not(.lintc-swiper--mounted) img { display: block; width: 100%; height: auto; }
+
+.lintc-swiper--mounted { position: relative; }
+
+.lintc-swiper__viewport { overflow: hidden; }
+
+.lintc-swiper__track {
+  display: flex;
+  will-change: transform;
+  touch-action: pan-y;            /* allow vertical page scroll; we own horizontal */
+}
+
+.lintc-swiper__slide {
+  flex: 0 0 100%;
+  min-width: 0;
+  margin: 0;
+}
+.lintc-swiper__slide img {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.lintc-swiper__slide figcaption {
+  text-align: center;
+  font-style: italic;
+  padding: 0.5rem 0;
+  opacity: 0.8;
+}
+
+.lintc-swiper__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+.lintc-swiper__nav { display: flex; gap: 0.25rem; }
+
+.lintc-swiper__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.lintc-swiper__btn:hover { background: rgba(127, 127, 127, 0.18); }
+.lintc-swiper__btn[disabled] { opacity: 0.3; cursor: default; }
+.lintc-swiper__btn[disabled]:hover { background: transparent; }
+.lintc-swiper__btn svg { width: 1.25rem; height: 1.25rem; }
+
+.lintc-swiper__dots { display: flex; gap: 0.45rem; margin-left: auto; }
+.lintc-swiper__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.3;
+  cursor: pointer;
+}
+.lintc-swiper__dot.is-active { opacity: 1; }
