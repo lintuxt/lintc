@@ -54,6 +54,8 @@ lintc --help
 
 `lintc check`'s validators are configurable via `src/data/lintc.yaml` — see [the docs](https://github.com/lintuxt/lintc/blob/trunk/docs/index.md) for the schema.
 
+lintc also supports **build-time plugins**, declared under `build.plugins` in the same `lintc.yaml`. A plugin contributes a shortcode plus its own JS/CSS, which are emitted into `dist/` (and the matching `<link>`/`<script>` tags injected) only on pages that actually use the shortcode. lintc bundles one: `lintc-swiper`, a zero-dependency inline image carousel authored with the `{{< lintc-swiper >}}` shortcode.
+
 ## Why it exists
 
 The reason lintc exists is that the static site for [lintuxt.ai](https://lintuxt.ai) needed a compiler, and the existing Python options either required a dependency graph I didn't want (Pelican, MkDocs) or a runtime I didn't want (Hugo's Go binary, Eleventy's Node.js). The constraint was: one file, stdlib only, no installation ceremony beyond having Python on the box.
