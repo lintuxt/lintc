@@ -180,3 +180,11 @@ class TestRun(unittest.TestCase):
             self.assertIn('<span class="t-cyan">hi</span>', text)
             self.assertIn("Last login:", text)
             self.assertTrue((root / "src" / "data" / "lintc-terminal.lock").exists())
+
+    def test_non_list_args_returns_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            errors, _ = tm.run(_make_cfg(Path(tmp)), {"mappings": [
+                {"command": "x", "local": "page.yaml", "args": "--help"},
+            ]})
+        self.assertEqual(len(errors), 1)
+        self.assertIn("args", errors[0])
