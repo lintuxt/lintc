@@ -184,6 +184,52 @@ class TestRunBehavior(unittest.TestCase):
                 })
             self.assertTrue(any("does not exist" in w for w in warnings))
 
+    def test_one_bad_mapping_does_not_abort_others(self):
+        # A mapping missing `repo` errors, but a valid mapping still processes.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = _make_cfg(root)
+            good = self._yaml(root, "src/content/products/good.yaml",
+                              "version: v0.1.0\n")
+            with patch.object(tag_sync, "_latest_tag", return_value="v0.2.0"):
+                errors, warnings = tag_sync.run(cfg, {
+                    "mappings": [
+                        {"local": "src/content/products/bad.yaml"},   # missing repo
+                        {"repo": "lintuxt/good",
+                         "local": "src/content/products/good.yaml"},
+                    ],
+                })
+            # the bad mapping produced an error...
+            self.assertTrue(any("missing required" in e for e in errors))
+            # ...but the good one still got its version set
+            self.assertIn("version: v0.2.0\n", good.read_text())
+
+    def test_stale_lock_entry_refreshed_without_rewriting_file(self):
+        # File already current, but the lockfile records an older tag → lock is
+        # refreshed (no file rewrite, no "set version" warning).
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = _make_cfg(root)
+            f = self._yaml(root, "src/content/products/foo.yaml", "version: v0.2.0\n")
+            before = f.read_text()
+            (root / "src/data/lintc-tag.lock").write_text(
+                "version: 1\nentries:\n"
+                "  src/content/products/foo.yaml:\n"
+                "    repo: \"lintuxt/foo\"\n"
+                "    tag: \"v0.1.0\"\n"
+                "    fetched_at: 2026-01-01T00:00:00Z\n",
+                encoding="utf-8",
+            )
+            with patch.object(tag_sync, "_latest_tag", return_value="v0.2.0"):
+                errors, warnings = tag_sync.run(cfg, {
+                    "mappings": [{"repo": "lintuxt/foo",
+                                  "local": "src/content/products/foo.yaml"}],
+                })
+            self.assertEqual(f.read_text(), before)  # file untouched
+            self.assertFalse(any("set version" in w for w in warnings))
+            # lock now records the current tag
+            self.assertIn("v0.2.0", (root / "src/data/lintc-tag.lock").read_text())
+
 
 if __name__ == "__main__":
     unittest.main()
