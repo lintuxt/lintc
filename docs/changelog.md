@@ -4,6 +4,25 @@ All notable changes to lintc are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] — 2026-05-29
+
+### Added
+
+- **Bundled check-time plugin: `terminal-mock`.** Regenerates a product
+  page's `terminal.body_html` block (the styled-HTML terminal mock) by
+  capturing real CLI output: runs the configured binary under a PTY so
+  the CLI emits its normal TTY-gated ANSI, converts the ANSI escape
+  sequences to the site's `t-*` `<span>` classes, wraps the result in
+  static shell chrome, and rewrites the `terminal.body_html` block
+  scalar in the mapped YAML file. A body-content hash is committed to
+  `src/data/lintc-terminal.lock` using the same drift/review flow as
+  `remote-sync` and `tag-sync` — the YAML is mutated on disk during
+  `lintc check` and changes are reviewed with `git diff`. Enable under
+  `check.plugins.terminal-mock` with `{command, local}` mappings
+  (optional `args` and `columns`, default 120). Non-destructive: leaves
+  the file unchanged when the command is not found, exits non-zero, or
+  produces no output.
+
 ## [0.8.0] — 2026-05-29
 
 ### Added

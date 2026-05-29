@@ -54,6 +54,12 @@ lintc --help
 
 `lintc check`'s validators are configurable via `src/data/lintc.yaml` — see [the docs](https://github.com/lintuxt/lintc/blob/trunk/docs/index.md) for the schema.
 
+lintc also supports **check-time plugins**, enabled under `check.plugins` in the same `lintc.yaml`. Plugins run during `lintc check` and can mutate the working tree (review drift with `git diff`). Bundled check-time plugins:
+
+- **`remote-sync`** — mirrors external files (e.g. upstream READMEs) to local paths via a committed lockfile (`src/data/lintc-sync.lock`). Pair with `body_source` to keep page body content in sync with upstream automatically.
+- **`tag-sync`** — sets a content YAML's `version:` field from a repo's latest git tag, tracked in `src/data/lintc-tag.lock`.
+- **`terminal-mock`** — regenerates a product page's `terminal.body_html` block by capturing real CLI output under a PTY, converting ANSI to `t-*` `<span>` classes, and wrapping in static shell chrome. Tracks output in `src/data/lintc-terminal.lock`.
+
 lintc also supports **build-time plugins**, declared under `build.plugins` in the same `lintc.yaml`. A plugin contributes a shortcode plus its own JS/CSS, which are emitted into `dist/` (and the matching `<link>`/`<script>` tags injected) only on pages that actually use the shortcode. lintc bundles one: `lintc-swiper`, a zero-dependency inline image carousel authored with the `{{< lintc-swiper >}}` shortcode (add `loop="true"` to wrap from the last slide back to the first).
 
 ## Why it exists

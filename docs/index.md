@@ -218,6 +218,97 @@ Common workflow:
 5. Commit the synced file + lockfile.
 6. On every subsequent push, plugin re-fetches. If upstream changed, the file is updated + lockfile bumped; working tree dirty, push fails, you review + commit.
 
+#### `tag-sync`
+
+Sets a content YAML's `version:` field from a repo's latest git tag. On
+`lintc check`, fetches tags via `git ls-remote --tags`, picks the highest
+semver release tag (pre-release tags are skipped), and rewrites the
+top-level `version:` line in each mapped file. State is tracked in
+`src/data/lintc-tag.lock` using the same drift/review flow as
+`remote-sync` — the field is mutated on disk during `lintc check` and
+changes are reviewed with `git diff`.
+
+**This plugin mutates disk during `lintc check`** — when the latest tag
+differs from the lockfile, the plugin updates the `version:` field and
+the lockfile. Review changes with `git diff` before committing.
+
+Config:
+
+```yaml
+check:
+  plugins:
+    tag-sync:
+      mappings:
+        - repo: https://github.com/owner/repo.git
+          local: src/content/products/repo.yaml
+          # field: version   # optional; defaults to "version"
+```
+
+Behavior:
+
+| Condition | Outcome |
+|---|---|
+| No tags found | Warning; field left unchanged |
+| Fetch failure | Warning; field left unchanged |
+| Target field absent from file | Warning; file left unchanged |
+| Tag matches lockfile | Silent pass; no file writes |
+| Tag differs from lockfile | Overwrite field, update lockfile, warn |
+
+#### `terminal-mock`
+
+Regenerates a product page's `terminal.body_html` block (the
+styled-HTML terminal mock) by capturing real CLI output. On
+`lintc check`, runs the configured binary under a PTY so the CLI emits
+its normal TTY-gated ANSI, converts the ANSI escape sequences to the
+site's `t-*` `<span>` classes, wraps the result in static shell chrome,
+and rewrites the `terminal.body_html` block scalar in the mapped YAML
+file. A body-content hash is committed to `src/data/lintc-terminal.lock`
+using the same drift/review flow as `remote-sync` and `tag-sync` — the
+YAML is mutated on disk during `lintc check` and changes are reviewed
+with `git diff`.
+
+**This plugin mutates disk during `lintc check`** — when the captured
+output differs from the lockfile hash, the plugin overwrites the YAML
+block and updates the lockfile. Review changes with `git diff` before
+committing.
+
+Config:
+
+```yaml
+check:
+  plugins:
+    terminal-mock:
+      mappings:
+        - command: displayswitcher
+          local: src/content/products/displayswitcher.yaml
+          # args: []        # optional; extra CLI arguments
+          # columns: 120    # optional; terminal width (default: 120)
+```
+
+Behavior:
+
+| Condition | Outcome |
+|---|---|
+| Command not found on PATH | Warning; file left unchanged |
+| Command exits non-zero | Warning; file left unchanged |
+| Command produces no output | Warning; file left unchanged |
+| No `body_html:` block in YAML | Warning; file left unchanged |
+| Hash matches lockfile | Silent pass; no file writes |
+| Hash differs | Overwrite YAML block, update lockfile, warn |
+
+Common workflow:
+
+1. Add a mapping to `check.plugins.terminal-mock.mappings` in `lintc.yaml`.
+2. Ensure the `command` is installed and on your PATH.
+3. Run `lintc check` locally.
+4. Plugin captures output, writes the updated YAML + lockfile, emits a
+   regeneration warning.
+5. Review changes with `git diff`.
+6. Commit the updated YAML + lockfile.
+7. On every subsequent push, plugin re-captures. If output changed, the
+   YAML is updated + lockfile bumped; working tree dirty, you review +
+   commit.
+
 ### Writing a plugin
 
 Plugins live in the `lintc_plugins/` namespace package (PEP 420 — no
