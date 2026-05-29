@@ -70,6 +70,15 @@ class TestSemanticColors(unittest.TestCase):
         self.assertEqual(tm.ansi_to_spans(f"{ESC}[35m♥{ESC}[0m")[0], '<span class="t-love">♥</span>')
 
 
+class TestDropLines(unittest.TestCase):
+    def test_drops_matching_lines_keeps_others(self):
+        text = "a\n  ♥ Looking for sponsors  url\nb"
+        self.assertEqual(tm._drop_lines(text, ["Looking for sponsors"]), "a\nb")
+
+    def test_empty_patterns_is_noop(self):
+        self.assertEqual(tm._drop_lines("a\nb", []), "a\nb")
+
+
 class TestTrimBlankEdges(unittest.TestCase):
     def test_strips_edge_blanks_keeps_internal(self):
         self.assertEqual(
