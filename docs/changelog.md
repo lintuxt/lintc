@@ -8,16 +8,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- **Build-time plugin mechanism.** Plugins are declared under a new
-  `build.plugins` list in `lintc.yaml` (each entry a dotted Python
-  module path). A plugin module exposes module-level `SHORTCODE`,
-  `PARTIAL`, and `ASSETS` attributes; lintc discovers and registers the
-  shortcode → partial mapping at startup. On `build`, `serve`, and
-  `check`, lintc emits each plugin's asset files to
-  `dist/assets/plugins/<slug>/` and injects the corresponding `<link>`
-  and `<script defer>` tags into every page that uses the shortcode.
-  Assets are emitted only for pages that actually use the plugin's
-  shortcode — pages that don't use it are not affected.
+- **Build-time plugin mechanism.** Plugins are enabled via a new
+  `build.plugins` mapping in `lintc.yaml`, keyed by plugin slug (e.g.
+  `lintc-swiper: {}`). Plugin modules live in the `lintc_plugins`
+  namespace package — lintc discovers them automatically (module
+  filename with underscores→hyphens gives the slug) and registers each
+  plugin's shortcode → partial mapping at startup; a slug listed under
+  `build.plugins` that has no discovered module is a config error. A
+  plugin module exposes module-level `SHORTCODE`, `PARTIAL`, and
+  `ASSETS` attributes. On `build`, `serve`, and `check`, lintc emits
+  each enabled plugin's asset files to `dist/assets/plugins/<slug>/`
+  and injects the corresponding `<link>` and `<script defer>` tags into
+  every page that uses the shortcode. Assets are emitted only for pages
+  that actually use the plugin's shortcode — pages that don't use it
+  are not affected.
 
 - **Bundled plugin: `lintc-swiper`.** A from-scratch, zero-dependency
   inline image carousel authored via the `{{< lintc-swiper >}}`
