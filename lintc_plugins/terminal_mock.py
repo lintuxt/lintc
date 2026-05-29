@@ -241,6 +241,10 @@ def run(cfg, plugin_config):
                 "terminal-mock: mappings[%d] missing `command` or `local`" % i)
             continue
         args = mapping.get("args", []) or []
+        if not isinstance(args, list):
+            errors.append(
+                "terminal-mock: mappings[%d] `args` must be a list" % i)
+            continue
         columns = mapping.get("columns", 120)
 
         if shutil.which(command) is None and not os.path.exists(command):
