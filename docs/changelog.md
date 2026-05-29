@@ -4,6 +4,23 @@ All notable changes to lintc are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] — 2026-05-29
+
+### Added
+
+- **Bundled check-time plugin: `tag-sync`.** Sets a content YAML's
+  `version:` field from a repo's latest git tag. Tags are fetched via
+  `git ls-remote --tags`; the plugin picks the highest semver release
+  tag (pre-release tags are skipped) and rewrites the top-level
+  `version:` line in each mapped file. State is tracked in
+  `src/data/lintc-tag.lock` using the same drift/review flow as
+  `remote-sync` — the field is mutated on disk during `lintc check`
+  and the diff is reviewed with `git diff`. Enable under
+  `check.plugins.tag-sync` with `{repo, local}` mappings (optional
+  `field`, default `version`). Non-destructive: leaves the field
+  unchanged on fetch failure, when no tags are found, or when the
+  target line is absent from the file.
+
 ## [0.7.0] — 2026-05-29
 
 ### Added
