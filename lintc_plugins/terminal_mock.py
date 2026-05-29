@@ -116,7 +116,6 @@ _PROMPT = (
 def wrap_chrome(body_html, command):
     """Wrap captured CLI HTML in the static terminal-session chrome."""
     lines = [
-        '<span class="t-muted">Last login: Sat May 23 11:30:55 on ttys009</span>',
         _PROMPT % "17:25:20",
         '<span class="t-muted">$ </span>' + command,
         "",
