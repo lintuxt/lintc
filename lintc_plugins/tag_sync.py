@@ -130,7 +130,13 @@ def _select_latest_tag(names):
 
 
 def _rewrite_field(text, field, value):
-    raise NotImplementedError  # implemented in Task 3
+    """Replace the value of the first top-level `<field>:` line (anchored at
+    column 0, so prefixed keys like `language_versions:` never match). Returns
+    the new text, or None if no such line exists."""
+    pattern = re.compile(r"(?m)^" + re.escape(field) + r":[^\n]*$")
+    if not pattern.search(text):
+        return None
+    return pattern.sub(lambda m: field + ": " + value, text, count=1)
 
 
 # --- lockfile (mirror remote_sync.py) ---

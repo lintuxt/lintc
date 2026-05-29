@@ -61,5 +61,30 @@ class TestSelectLatestTag(unittest.TestCase):
         self.assertIsNone(tag_sync._select_latest_tag(["latest", "v1.0.0-rc1"]))
 
 
+class TestRewriteField(unittest.TestCase):
+    def test_rewrites_version_line(self):
+        text = "title: lintc\nslug: lintc\nversion: v0.1.3\nbody_source: synced/lintc.md\n"
+        out = tag_sync._rewrite_field(text, "version", "v0.7.0")
+        self.assertIn("version: v0.7.0\n", out)
+        self.assertNotIn("v0.1.3", out)
+        self.assertIn("title: lintc\n", out)
+        self.assertIn("body_source: synced/lintc.md\n", out)
+
+    def test_does_not_match_prefixed_key(self):
+        text = "language_versions: \"6.0+\"\nversion: v0.1.0\n"
+        out = tag_sync._rewrite_field(text, "version", "v0.1.1")
+        self.assertIn('language_versions: "6.0+"\n', out)
+        self.assertIn("version: v0.1.1\n", out)
+
+    def test_no_version_line_returns_none(self):
+        text = "title: x\nslug: x\n"
+        self.assertIsNone(tag_sync._rewrite_field(text, "version", "v1.0.0"))
+
+    def test_value_with_special_chars_is_literal(self):
+        text = "version: old\n"
+        out = tag_sync._rewrite_field(text, "version", "v1.0.0")
+        self.assertEqual(out, "version: v1.0.0\n")
+
+
 if __name__ == "__main__":
     unittest.main()
